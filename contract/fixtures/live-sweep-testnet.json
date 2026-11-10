@@ -1,0 +1,137 @@
+{
+  "network": "testnet",
+  "signer": "v1.signer-prod.testnet",
+  "contract": "v1.ghost-paths.testnet",
+  "root_keys": {
+    "0": "secp256k1:4NfTiv3UsGahebgTaHyD9vF8KYKMBnfd6kh94mK6xv8fGBiJB8TBtFMP5WWXz6B89Ac1fbpzPwAvoyQebemHFwx3",
+    "1": "ed25519:6vSEtQxrQj6txUMh33WC4ERyCWmNMRTdufDWAaDY3Un2"
+  },
+  "recorded_at_block": 276827114,
+  "k_pub": "249e1c509d9817dafea7a03ab4949a1856dc635ec2c1529460481caf055e17639b153c37580a8a09fdd086f80b856ecfc2920ba0f695acf4ad71dce6f536098f",
+  "note": "Recorded by contract/tests/live_testnet.rs. The stealth private key is not stored.",
+  "cases": [
+    {
+      "predecessor": "v1.ghost-paths.testnet",
+      "predecessor_type": "contract (Ghost Paths, via sweep)",
+      "caller": "ghost-paths.testnet",
+      "path": "gp1/38355b9b0623175ea5f5b06b82397a82918dfed8c45ee47cb647c5e74743546e",
+      "domain_id": 0,
+      "derived_pub": "secp256k1:2iiYbU3arTuvvt5M4uoFJp2kPMX7SM2XdsTgsUkwXvr81XwCpmm38m86pRCpNiqESCFc6hqLpfWqHc4zLjaqqHgU",
+      "address": "0xc3100aaea33bbb8112a188bb4452714f61c3f7ad",
+      "payload": "3f18254545256a5c6e411613346f40701f1b7f1e371a28627b4a58304f033f0f",
+      "signature": {
+        "scheme": "Secp256k1",
+        "big_r": {
+          "affine_point": "03d2fe42a2341c237ec690dca3a89d8b3a5bc3299a7c8534cf7afd8e37cd676751"
+        },
+        "s": {
+          "scalar": "448d724cc79989b2c0c430037702ba226a21d215bbc218b51c68e9e4aa5fd52b"
+        },
+        "recovery_id": 1
+      },
+      "recovered_ok": true,
+      "sweep_args": {
+        "path": "gp1/38355b9b0623175ea5f5b06b82397a82918dfed8c45ee47cb647c5e74743546e",
+        "domain_id": 0,
+        "payloads": ["3f18254545256a5c6e411613346f40701f1b7f1e371a28627b4a58304f033f0f"],
+        "expires_block": 276827314,
+        "k_pub": "249e1c509d9817dafea7a03ab4949a1856dc635ec2c1529460481caf055e17639b153c37580a8a09fdd086f80b856ecfc2920ba0f695acf4ad71dce6f536098f",
+        "sig": "4e5dee5a3ea7c9c0d5819137b89c377968f6ae478b1a71ab44aca21b19befd58295c402974585ffce84eb61df77a0abb2eab5dabae97662431506f5834785292",
+        "v": 0
+      },
+      "tx_hash": "21AELEHgstoAhQTCPbQ7CHWnw73nLDpCJYTcofDSM78G",
+      "gas_burnt_tgas": 10.664042570378,
+      "receipts": [
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.33123378549
+        },
+        {
+          "executor": "v1.ghost-paths.testnet",
+          "tgas": 2.200728701185
+        },
+        {
+          "executor": "v1.signer-prod.testnet",
+          "tgas": 4.236812322705
+        },
+        {
+          "executor": "v1.signer-prod.testnet",
+          "tgas": 3.448902635998
+        },
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.2231825625
+        },
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.2231825625
+        }
+      ],
+      "latency_s": 13.2
+    },
+    {
+      "predecessor": "v1.ghost-paths.testnet",
+      "predecessor_type": "contract (Ghost Paths, via sweep)",
+      "caller": "ghost-paths.testnet",
+      "path": "gp1/38355b9b0623175ea5f5b06b82397a82918dfed8c45ee47cb647c5e74743546e",
+      "domain_id": 1,
+      "derived_pub": "ed25519:H8fT4bPhLoVHFgToSA8dyJxSy7yS92pbLF5RJMqJxHu",
+      "address": "H8fT4bPhLoVHFgToSA8dyJxSy7yS92pbLF5RJMqJxHu",
+      "payload": "5243d2a8d001f653ca2c6e4c4b7ea0a9bd3bbc7f5de166c49d263de562d8251bf3ddfbbc3a9f614041e822ac4a6dda59b6685a69a92c308d98f02b99f361288093cc145bd2e4613b8ac14a70f4bc58eed47dbd37e3602a088662e7b7d71400e1430abd3545f088c3dcfda90f8c540ef3e3d7a2eb006fe92cc48fd8196b7e03ff3d6de9f5fd0250fdffea97cc8e489c97df87fc2b084f85d7127ceb9002a38233cf6c344f713c55ae7ce6583af2c10aad522e178e4a1f443a00cbbb5d8723dba0cc069c5272b6562c75924003c53c656443db3ffd8a7b81",
+      "signature": {
+        "scheme": "Ed25519",
+        "signature": [
+          98, 180, 135, 35, 40, 20, 10, 85, 44, 123, 58, 29, 223, 241, 198, 64, 176, 177, 29, 176,
+          162, 111, 189, 202, 110, 244, 234, 144, 229, 75, 95, 82, 217, 150, 235, 74, 220, 134, 97,
+          18, 124, 18, 96, 58, 96, 2, 192, 145, 244, 97, 140, 187, 213, 218, 13, 124, 137, 25, 159,
+          129, 150, 5, 63, 5
+        ]
+      },
+      "recovered_ok": true,
+      "sweep_args": {
+        "path": "gp1/38355b9b0623175ea5f5b06b82397a82918dfed8c45ee47cb647c5e74743546e",
+        "domain_id": 1,
+        "payloads": [
+          "5243d2a8d001f653ca2c6e4c4b7ea0a9bd3bbc7f5de166c49d263de562d8251bf3ddfbbc3a9f614041e822ac4a6dda59b6685a69a92c308d98f02b99f361288093cc145bd2e4613b8ac14a70f4bc58eed47dbd37e3602a088662e7b7d71400e1430abd3545f088c3dcfda90f8c540ef3e3d7a2eb006fe92cc48fd8196b7e03ff3d6de9f5fd0250fdffea97cc8e489c97df87fc2b084f85d7127ceb9002a38233cf6c344f713c55ae7ce6583af2c10aad522e178e4a1f443a00cbbb5d8723dba0cc069c5272b6562c75924003c53c656443db3ffd8a7b81"
+        ],
+        "expires_block": 276827314,
+        "k_pub": "249e1c509d9817dafea7a03ab4949a1856dc635ec2c1529460481caf055e17639b153c37580a8a09fdd086f80b856ecfc2920ba0f695acf4ad71dce6f536098f",
+        "sig": "1b26292b0a6db3e4673aa39be1c143f4851e9339c2e005422c2a03ce783172e3340682de26adf2ee28434feb1ad3be17220b11905623ed41aa0675c6fca82f0c",
+        "v": 0
+      },
+      "tx_hash": "9qZQVb9MKdXXZ59tuXs9XerWVSimQL2RGoPMUvUx62W7",
+      "gas_burnt_tgas": 11.626828503578,
+      "receipts": [
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.34868602518
+        },
+        {
+          "executor": "v1.ghost-paths.testnet",
+          "tgas": 2.328969909793
+        },
+        {
+          "executor": "v1.signer-prod.testnet",
+          "tgas": 4.745314060584
+        },
+        {
+          "executor": "v1.signer-prod.testnet",
+          "tgas": 3.534310820521
+        },
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.2231825625
+        },
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.2231825625
+        },
+        {
+          "executor": "ghost-paths.testnet",
+          "tgas": 0.2231825625
+        }
+      ],
+      "latency_s": 13.2
+    }
+  ]
+}
