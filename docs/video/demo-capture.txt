@@ -1,0 +1,155 @@
+# Captured stdout of KEEP=1 make demo (real run: NEAR testnet + MPC, local anvil + Solana validator), 2026-11-09T01:32:20.535Z.
+# The video plays an abridged selection of these lines; step 8 (1Click dry quote) is not in the video.
+# Local paths are shortened; no keys are printed by the demo.
+
+Ghost Paths demo mode=local  run=.secrets/demo/<run>
+
+[0:00] 1. Infrastructure: NEAR testnet accounts, contract, local chains, MPC root keys  (script 0:00)
+  starting anvil + solana-test-validator (sudo -n docker compose, demo/docker-compose.yml)…
+  ✓ anvil (evm:31337) and solana-test-validator (sol:local) up
+  creating fresh NEAR testnet accounts from the demo funder gp-alice-9b00b4ae68.testnet (no owner keys)…
+  $ ghost account create --as bob --fund 0.5
+  $ ghost account create --as carol --fund 0.5
+  $ ghost account create --as relayer --fund 1.5
+  ✓ bob      gp-bob-ffdf54109a.testnet
+  ✓ carol    gp-carol-b5265cd2b3.testnet
+  ✓ relayer  gp-relayer-18c7ea7678.testnet
+  ✓ alice    pays from a local wallet and needs no NEAR account: the relayer posts her announcement
+  ✓ relayer listening on http://127.0.0.1:8787 as gp-relayer-18c7ea7678.testnet
+  $ ghost status
+      NEAR network  testnet
+      MPC signer    v1.signer-prod.testnet
+      root keys     ok (v1.signer-prod.testnet public_key matches chainsig.js for domains 0 and 1)
+      contract      v1.ghost-paths.testnet deployed, signer v1.signer-prod.testnet, 39 announcements
+      mode          contract (Mode B)
+      relayer       http://127.0.0.1:8787 ok gp-relayer-18c7ea7678.testnet
+      evm:31337     ok http://127.0.0.1:8545 
+      sol:local     ok http://127.0.0.1:8899 
+  ✓ MPC root keys: v1.signer-prod.testnet public_key matches chainsig.js
+  ✓ Ghost Paths contract v1.ghost-paths.testnet is deployed
+  ✓ evm:31337 RPC reachable
+  ✓ sol:local RPC reachable
+
+[0:34] 2. Bob creates his keys and registers one meta-address on NEAR  (script 0:15)
+  $ ghost init --as carol
+  $ ghost init --as bob
+    keystore created for bob
+      handle                 ghost:gp-bob-ffdf54109a.testnet
+      spend pub (secp256k1)  024a6a0f1682fa4e7f5922d3b969405a6907e6506d20de2e91ac5ea107267aeb1c
+      view pub (X25519)      fdf30f1b0e2d0c157e608d8cfca4bc3dc74ccb785f47fc2b8f60364b98af841e
+      mode                   contract (Mode B: predecessor = Ghost Paths contract)
+      keystore               .secrets/demo/<run>/home/bob.json (0600, holds the seed)
+      You hold two keys and no BTC/ETH/SOL key: the MPC network signs for every chain.
+  $ ghost register --as carol
+  $ ghost register --as bob
+    registered gp-bob-ffdf54109a.testnet
+      contract  v1.ghost-paths.testnet
+      NEAR tx   https://testnet.nearblocks.io/txns/7d8eyMBWCQR8Sr1gkEe2c4nVpRsUFAs2aJLYHAjeJ1Th
+  ✓ bob registered
+  $ ghost meta bob
+  ✓ registry returns bob's meta-address
+  carol (a stranger with her own keys) registered too
+
+[0:44] 3. Alice pays bob 0.01 ETH on evm:31337 at a one-time address  (script 0:30)
+  $ ghost pay bob 0.01 ETH --chain evm:31337 --as alice --memo invoice #42
+      one-time address 0xbe055053AFA69ec2D69CCd94Ebb6fb9AE8366948 on anvil (local)
+        = MPC-derive(predecessor v1.ghost-paths.testnet, path gp1/3354b8baa3…c4182b, domain 0)
+      funding payer 0x16A139880603f4ccEb23c682E7eF3a69F7c1b145 on anvil (local) (local faucet)…
+      paying 0.01 ETH from key 0x16A13988…c1b145…
+    paid gp-bob-ffdf54109a.testnet 0.01 ETH on evm:31337
+      stealth address  0xbe055053AFA69ec2D69CCd94Ebb6fb9AE8366948
+      derived from     v1.ghost-paths.testnet + gp1/3354b8baa369091bccb91fa3c19f1be002ca9ba4947d68f34544d3d63cc4182b
+      payment tx       0x326510554372a58d576b873ff0b5b64c2e57a8d7ab0f31d1ee949f5ca75cb6df
+      announcement     idx 39: chain evm:31337, eph ba0eb001…8b79, tag 0x7c (no recipient field)
+      NEAR tx          https://testnet.nearblocks.io/txns/FjM4tLoYmWcJGt5fKP7PXNt56Z4tY6J9basknBEZp1xh (via relayer)
+  ✓ payment on evm:31337 announced (idx 39, via relayer)
+
+[0:49] 4. Alice pays bob 0.1 SOL on sol:local at a one-time address  (script 0:45)
+  $ ghost pay bob 0.1 SOL --chain sol:local --as alice --memo invoice #43
+      one-time address 91z4RX6Tzb6Vhh7wDbG2rab74WJwyvMdbAqhm8ovSxB7 on solana-test-validator (local)
+        = MPC-derive(predecessor v1.ghost-paths.testnet, path gp1/a2f8e58515…510beb, domain 1)
+      funding payer 7VZXCyBYvgqyRH5UAPNTeticedvwvcUyhg1opfdhiPFi on solana-test-validator (local) (local faucet)…
+      paying 0.1 SOL from key 7VZXCyBYvg…dhiPFi…
+    paid gp-bob-ffdf54109a.testnet 0.1 SOL on sol:local
+      stealth address  91z4RX6Tzb6Vhh7wDbG2rab74WJwyvMdbAqhm8ovSxB7
+      derived from     v1.ghost-paths.testnet + gp1/a2f8e58515b007a365afd9227d5f8a61ac7b4f18f19728d807aa2c9ce7510beb
+      payment tx       2YoF8aEfybAH3NS8msZtWk3NLs7FYMHdExCemVSiNfbur6SJZyPkhMDdtgCc4AfpWaJ65ju144MvQEL18dTEVN63
+      announcement     idx 40: chain sol:local, eph 9573e416…dd0c, tag 0xc2 (no recipient field)
+      NEAR tx          https://testnet.nearblocks.io/txns/5tDShLaRf7tfETDfhXMQcgTsuY68Mt6ozsusAXVJhJbe (via relayer)
+  ✓ payment on sol:local announced (idx 40, via relayer)
+
+[0:55] 5. Who can see the payments? stranger, recipient, auditor  (script 1:00)
+  $ ghost scan --as carol --since 39
+    carol scanned 2 announcements: 0 payments
+  ✓ carol (different viewing key) finds 0 payments
+  $ ghost scan --as bob
+    bob scanned 41 announcements: 2 payments
+      idx  chain      address            balance   memo         status 
+      39   evm:31337  0xbe055053…366948  0.01 ETH  invoice #42  unspent
+      40   sol:local  91z4RX6Tzb…ovSxB7  0.1 SOL   invoice #43  unspent
+  ✓ bob finds idx 39 on evm:31337 with balance 0.01 ETH (invoice #42)
+  ✓ bob finds idx 40 on sol:local with balance 0.1 SOL (invoice #43)
+  $ ghost export-viewing-key --as bob --out .secrets/demo/<run>/bob.view.json
+    viewing-key bundle for gp-bob-ffdf54109a.testnet written to .secrets/demo/<run>/bob.view.json
+      It reveals every incoming payment (share it only with your auditor) but cannot sweep.
+  $ ghost scan --viewing-key .secrets/demo/<run>/bob.view.json
+    auditor (.secrets/demo/<run>/bob.view.json) scanned 41 announcements: 2 payments
+      idx  chain      address            balance   memo         status 
+      39   evm:31337  0xbe055053…366948  0.01 ETH  invoice #42  unspent
+      40   sol:local  91z4RX6Tzb…ovSxB7  0.1 SOL   invoice #43  unspent
+      viewing key only: no spend key, cannot sweep
+  ✓ auditor (viewing key only) sees the same payments
+  ✓ auditor cannot sweep
+
+[1:02] 6. Bob sweeps idx 39 (evm:31337) through the relayer → MPC → evm:31337  (script 1:15)
+  $ ghost sweep 39 --to 0x8e4d45f436e498232ae1fc74af6befd463d9279f --as bob
+      preparing anvil (local) transfer 0xbe055053…366948 → 0x8e4d45f4…d9279f
+      sending 0.009952745589979 ETH, network fee 0.000047254410021 ETH
+      relayer submits v1.ghost-paths.testnet.sweep(path gp1/3354b8baa3…c4182b, k_pub 9b7ac8f1…d728); waiting for the MPC…
+      MPC signature in 7.1 s
+    swept payment 39 on evm:31337
+      from (stealth)       0xbe055053AFA69ec2D69CCd94Ebb6fb9AE8366948
+      to                   0x8e4d45f436e498232ae1fc74af6befd463d9279f
+      NEAR tx              https://testnet.nearblocks.io/txns/Hmrz3CU4AzYS8BhyMnirQvg7pwpRwat5GCJSuvBgeUwp
+      MPC time             7.1 s
+      chain tx             0x3d57ab91ba88dc33312b9050f45b8e25b1ef03a3ce817c73eee071af71e8565c
+      destination balance  0.009952745589979 ETH
+      On NEAR: the relayer asked the contract to sign path gp1/3354b8baa3…c4182b; nothing names the recipient.
+  ✓ swept evm:31337 via relayer (MPC 7.125 s)
+  NEAR explorer: v1.ghost-paths.testnet requested a signature for path gp1/3354b8baa3… from tx Hmrz3CU4AzYS8BhyMnirQvg7pwpRwat5GCJSuvBgeUwp; nothing names gp-bob-ffdf54109a.testnet
+
+[1:12] 7. Bob sweeps idx 40 (sol:local) through the relayer → MPC → sol:local  (script 1:15)
+  $ ghost sweep 40 --to BgNqpojpLtVyxreyZWVy3DcbGAFv1MfhMcAaddtJGz4C --as bob
+      preparing solana-test-validator (local) transfer 91z4RX6Tzb…ovSxB7 → BgNqpojpLt…tJGz4C
+      sending 0.099995 SOL, network fee 0.000005 SOL
+      relayer submits v1.ghost-paths.testnet.sweep(path gp1/a2f8e58515…510beb, k_pub 2178f101…1e33); waiting for the MPC…
+      MPC signature in 7.5 s
+    swept payment 40 on sol:local
+      from (stealth)       91z4RX6Tzb6Vhh7wDbG2rab74WJwyvMdbAqhm8ovSxB7
+      to                   BgNqpojpLtVyxreyZWVy3DcbGAFv1MfhMcAaddtJGz4C
+      NEAR tx              https://testnet.nearblocks.io/txns/14PycJTvWhGHwD9UQVf2bQ2xC48E4FWVuRyvw8nanRF9
+      MPC time             7.5 s
+      chain tx             5XeYNiesNKuWwVaWcBom5NAjRkGSDGvvCWxoMoW7YTRKmmE6bvAk2zWrmg3K5LU5YCDjuw4isG1XAVoYW4hgEWdK
+      destination balance  0.099995 SOL
+      On NEAR: the relayer asked the contract to sign path gp1/a2f8e58515…510beb; nothing names the recipient.
+  ✓ swept sol:local via relayer (MPC 7.456 s)
+  NEAR explorer: v1.ghost-paths.testnet requested a signature for path gp1/a2f8e58515… from tx 14PycJTvWhGHwD9UQVf2bQ2xC48E4FWVuRyvw8nanRF9; nothing names gp-bob-ffdf54109a.testnet
+  $ ghost scan --as bob
+    bob scanned 41 announcements: 2 payments
+      idx  chain      address            balance  memo         status
+      39   evm:31337  0xbe055053…366948  0 ETH    invoice #42  swept 
+      40   sol:local  91z4RX6Tzb…ovSxB7  0 SOL    invoice #43  swept 
+  ✓ idx 39 now shows as swept
+  ✓ idx 40 now shows as swept
+
+[1:23] 8. Breaking the consolidation link on mainnet: 1Click dry quote (nothing is sent)  (script 1:50)
+  $ ghost quote --chain evm:8453 --amount 0.002 --to usdc:sol --recipient BgNqpojpLtVyxreyZWVy3DcbGAFv1MfhMcAaddtJGz4C --confidential basic
+    1Click dry quote: 0.002 ETH → 4.006324 usdc:sol (~$4.00), ~34 s
+      confidentiality  public (wanted basic)
+      note             1Click refused confidentiality "basic" without an API key (HTTP 401); showing a public dry quote. Set ONECLICK_API_KEY to use Confidential Intents.
+  confidential quotes need ONECLICK_API_KEY; the public quote shows the route works
+
+demo OK: 17/17 checks passed in 87 s
+  KEEP=1: chains still running (make chains-down to stop); profiles in .secrets/demo/<run>/home (GHOST_HOME)
+  web UI against this state: make web  →  http://127.0.0.1:8788
+  KEEP=1: relayer still running (pid 3616070, http://127.0.0.1:8787); stop it with: kill 3616070
