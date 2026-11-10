@@ -1,0 +1,38 @@
+{
+  "seed": "1e8dc483bf17297ae721f3828de3e1f1",
+  "funder": "gp-alice-9b00b4ae68.testnet",
+  "recorded_at": "2026-11-08T22:53:26.075Z",
+  "contract": "v1.ghost-paths.testnet",
+  "chains": [
+    "evm:31337",
+    "sol:local"
+  ],
+  "dest": {
+    "evm": "0x005dbe9e75fee04d2405a836dae7fb894d0a68a3",
+    "sol": "CQne6bevWverC2sRPsGahXPgGYNHcPvjiu5gB6bB8gaC"
+  },
+  "steps": [
+    "01-account-bob",
+    "02-account-carol",
+    "03-account-relayer",
+    "04-status",
+    "05-init-carol",
+    "06-init",
+    "07-register-carol",
+    "08-register",
+    "09-meta",
+    "10-pay",
+    "11-pay",
+    "12-scan-carol",
+    "13-scan-bob",
+    "14-export-vk",
+    "15-scan-auditor",
+    "16-sweep-evm-31337",
+    "17-sweep-sol-local",
+    "18-scan-bob-after",
+    "19-quote",
+    "20-delete-bob",
+    "21-delete-carol",
+    "22-delete-relayer"
+  ]
+}

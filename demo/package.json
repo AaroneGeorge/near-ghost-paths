@@ -1,0 +1,12 @@
+{
+  "name": "@ghost-paths/demo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ghost-paths/sdk": "workspace:*"
+  },
+  "scripts": {
+    "demo": "bun demo.ts"
+  }
+}
