@@ -1,0 +1,410 @@
+{
+  "schema_version": "0.4.0",
+  "metadata": {
+    "name": "ghost-paths",
+    "version": "0.1.0",
+    "build": {
+      "compiler": "rustc 1.99.1",
+      "builder": "cargo-near cargo-near-build 0.11.5"
+    },
+    "wasm_hash": "Gep6ZYfa43r5ZJk97EAma1GjyPfuXrfcvTDPbJXN1fF6"
+  },
+  "body": {
+    "functions": [
+      {
+        "name": "announce",
+        "doc": " Append an announcement and return its index. Payable: attach storage (127 bytes =\n 0.00127 NEAR without a memo, +0.00001 NEAR per memo char; 0.003 NEAR covers a 160-char\n memo). The excess is refunded.\n `chain`: chain tag, `[a-z0-9:-]`, 1..=32 chars. `eph`: 32-byte X25519 ephemeral key, hex.\n `tag`: view tag. `ct`: optional memo ciphertext, printable ASCII, 1..=1024 chars.",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "chain",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "eph",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "tag",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "ct",
+              "type_schema": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          }
+        }
+      },
+      {
+        "name": "announcement_count",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
+          }
+        }
+      },
+      {
+        "name": "contract_source_metadata",
+        "kind": "view"
+      },
+      {
+        "name": "get_announcements",
+        "doc": " Announcements `[from, from + limit)`, `limit` clamped to 200. Empty past the end.",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "from",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "limit",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/Announcement"
+            }
+          }
+        }
+      },
+      {
+        "name": "get_meta",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "account_id",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "anyOf": [
+              {
+                "$ref": "#/definitions/Meta"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "new",
+        "kind": "call",
+        "modifiers": [
+          "init"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "signer_id",
+              "type_schema": {
+                "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "register",
+        "doc": " Register (or overwrite) the caller's meta-address. Payable: attach storage\n (126 bytes = 0.00126 NEAR the first time; overwrites cost nothing); the excess is refunded.\n `spend_pub`: 33-byte compressed secp256k1 hex. `view_pub`: 32-byte X25519 hex.\n `mode`: \"contract\" (Mode B, default) or \"account\" (Mode A fallback).",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "spend_pub",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "view_pub",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "mode",
+              "type_schema": {
+                "type": "string"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "name": "signer_id",
+        "doc": " The MPC signer this contract forwards `sign` to.",
+        "kind": "view",
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+            "type": "string"
+          }
+        }
+      },
+      {
+        "name": "sweep",
+        "doc": " Ask the MPC signer to sign `payloads[0]` for `derive(this_contract, path)`, authorised by an\n ECDSA signature `(sig, v)` over `sweep_digest(...)` by the stealth key `k_pub`.\n Anyone may submit (a relayer); the signature binds contract, path, domain, expiry and\n payload, so the submitter cannot change what gets signed. Attach >= 1 yoctoNEAR (excess\n refunded) and 300 Tgas. Returns the MPC `sign` result unchanged\n (`{\"scheme\":\"Secp256k1\",big_r,s,recovery_id}` or `{\"scheme\":\"Ed25519\",signature}`).",
+        "kind": "call",
+        "modifiers": [
+          "payable"
+        ],
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "path",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "domain_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "payloads",
+              "type_schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "name": "expires_block",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "k_pub",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "sig",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "v",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "$ref": "#/definitions/Promise"
+          }
+        }
+      },
+      {
+        "name": "sweep_digest",
+        "doc": " Helper for clients: the hex digest `sweep` expects `K` to sign (same inputs, no auth).",
+        "kind": "view",
+        "params": {
+          "serialization_type": "json",
+          "args": [
+            {
+              "name": "path",
+              "type_schema": {
+                "type": "string"
+              }
+            },
+            {
+              "name": "domain_id",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint8",
+                "minimum": 0.0
+              }
+            },
+            {
+              "name": "payloads",
+              "type_schema": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "name": "expires_block",
+              "type_schema": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            }
+          ]
+        },
+        "result": {
+          "serialization_type": "json",
+          "type_schema": {
+            "type": "string"
+          }
+        }
+      }
+    ],
+    "root_schema": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "String",
+      "type": "string",
+      "definitions": {
+        "Announcement": {
+          "description": "JSON view, equal to `Announcement` in packages/sdk/src/types.ts.",
+          "type": "object",
+          "required": [
+            "announcer",
+            "block_height",
+            "chain",
+            "eph",
+            "idx",
+            "tag",
+            "timestamp_ms"
+          ],
+          "properties": {
+            "announcer": {
+              "description": "NEAR Account Identifier.\n\nThis is a unique, syntactically valid, human-readable account identifier on the NEAR network.\n\n[See the crate-level docs for information about validation.](index.html#account-id-rules)\n\nAlso see [Error kind precedence](AccountId#error-kind-precedence).\n\n## Examples\n\n``` use near_account_id::AccountId;\n\nlet alice: AccountId = \"alice.near\".parse().unwrap();\n\nassert!(\"ƒelicia.near\".parse::<AccountId>().is_err()); // (ƒ is not f) ```",
+              "type": "string"
+            },
+            "block_height": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "chain": {
+              "type": "string"
+            },
+            "ct": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "eph": {
+              "type": "string"
+            },
+            "idx": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            },
+            "tag": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "timestamp_ms": {
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          }
+        },
+        "Meta": {
+          "description": "JSON view, equal to `Meta` in packages/sdk/src/types.ts.",
+          "type": "object",
+          "required": [
+            "mode",
+            "spend_pub",
+            "v",
+            "view_pub"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "spend_pub": {
+              "type": "string"
+            },
+            "v": {
+              "type": "integer",
+              "format": "uint8",
+              "minimum": 0.0
+            },
+            "view_pub": {
+              "type": "string"
+            }
+          }
+        },
+        "Promise": true
+      }
+    }
+  }
+}
