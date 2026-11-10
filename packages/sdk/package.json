@@ -1,0 +1,21 @@
+{
+  "name": "@ghost-paths/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@noble/ciphers": "2.4.0",
+    "@noble/curves": "2.4.0",
+    "@noble/hashes": "2.4.0",
+    "@scure/base": "2.2.0",
+    "@solana/web3.js": "1.98.4",
+    "chainsig.js": "1.1.16",
+    "near-api-js": "7.4.0",
+    "viem": "2.57.17"
+  }
+}
