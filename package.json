@@ -1,0 +1,20 @@
+{
+  "name": "ghost-paths",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Stealth addresses on Bitcoin, Ethereum and Solana from one NEAR account",
+  "license": "MIT",
+  "author": "Aarone George",
+  "workspaces": ["packages/*", "apps/*", "demo"],
+  "scripts": {
+    "build": "cd apps/web && bun run build",
+    "test": "bun test packages apps",
+    "lint": "biome check .",
+    "format": "biome format --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}

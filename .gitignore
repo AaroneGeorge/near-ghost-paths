@@ -1,0 +1,8 @@
+node_modules/
+target/
+.secrets/
+runs/
+.env
+dist/
+*.log
+.DS_Store
