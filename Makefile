@@ -72,9 +72,9 @@ demo-testnet:
 demo-live:
 	bun demo/demo.ts --live
 
-# Render docs/video/ghost-paths-demo.mp4 (+ poster.png, demo-capture.txt) from a real `KEEP=1 make demo` run and the
-# real web UI in Playwright chromium; needs docker, network, ffmpeg. Stops what it started (make demo-clean).
-# VIDEO_SOURCE=replay uses the offline replay and the simulated UI instead (captions then say replayed/simulated).
+# Render docs/video/ghost-paths-demo.mp4 (+ poster.png, demo-capture.txt, explorer-links.txt), all live on testnet:
+# the web app in Brave, `KEEP=1 make demo-testnet` in Terminal.app, the explorer pages. macOS, Brave, ffmpeg and a funded
+# .secrets/demo/testnet-payer.env (docs/VIDEO-SCRIPT.md). Stops what it started (make demo-clean).
 video:
 	bun scripts/record-video.ts
 

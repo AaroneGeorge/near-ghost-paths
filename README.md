@@ -113,7 +113,7 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
 10. `make demo-live`: designed for NEAR mainnet + Base + a 1Click confidential sweep. It **refuses** without `MAINNET_APPROVED=1`, a mainnet contract and mainnet profiles, prints what is missing, runs only a free keyless 1Click **dry** quote
     and exits 0 having spent nothing. No mainnet contract exists yet (see [Limitations](#limitations-and-next-steps)).
 
-11. `make video`: renders the demo video, `docs/video/ghost-paths-demo.mp4` (1:52, silent, burned-in captions, poster next to it), from a real `KEEP=1 make demo` run and the real web UI driven by Playwright; it cleans up afterwards. It shows the testnet MPC with local chains, the web send/scan/sweep flow, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). `VIDEO_SOURCE=replay make video` renders offline and labels itself replayed/simulated.
+11. `make video` (macOS, Brave, a funded testnet payer): renders the demo video, `docs/video/ghost-paths-demo.mp4` (1:48, silent, burned-in captions, poster next to it), all live on NEAR testnet, Sepolia and Solana devnet. Alice pays Bob in the web app, Bob withdraws, what outsiders and his accountant see; then a behind-the-scenes card, a real Terminal.app run of `make demo-testnet` and the explorer pages of those transactions as proof, use cases, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). Setup and storyboard: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
 
 ---
 
@@ -195,7 +195,7 @@ A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 | `packages/relayer/` | small HTTP relayer with its own NEAR account: `/announce`, `/sweep`, `/health` |
 | `apps/web/` | Vite + React UI: Send, Scan, Sweep, Auditor |
 | `demo/` | `demo.ts` (what `make demo*` runs), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
-| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:52, silent with captions), its poster and the captured run output |
+| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:48, silent with captions), its poster, the captured Terminal output and the explorer links it shows |
 | `scripts/` | `record-video.ts`, what `make video` runs |
 
 Run any CLI command through `make ghost ARGS="status"` or `bun packages/cli/src/ghost.ts <command>`. Each command accepts `--json`. See [docs/DEMO.md](docs/DEMO.md) for the exact commands and expected output of every step.

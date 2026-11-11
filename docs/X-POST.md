@@ -4,7 +4,7 @@ Rules from HACKATHON.md (section 2): say it was built at NEAR HACKATHON, tag @NE
 Optional: @NearLegion and @NearBuilders (more amplification). The post URL goes into the submission as `demoUrl`.
 The first line must make sense to someone who does not know the project; show one complete moment; say concretely what NEAR does; end with a next step.
 
-Replace `<repo-url>` with the public repository URL before posting. Attach `docs/video/ghost-paths-demo.mp4` (1:52; shot list in `docs/VIDEO-SCRIPT.md`).
+Replace `<repo-url>` with the public repository URL before posting. Attach `docs/video/ghost-paths-demo.mp4` (1:48; shot list in `docs/VIDEO-SCRIPT.md`).
 
 ## Option A: single post (265 characters without the link line)
 
