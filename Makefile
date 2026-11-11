@@ -42,8 +42,9 @@ DOCKER := $(if $(filter sudo,$(DOCKER_OK)),sudo -n docker,docker)
 
 # NEAR testnet (real MPC) + local chains (anvil, solana-test-validator in docker).
 # Without docker it runs the offline replay instead and says so.
+# DEMO_NATIVE_CHAINS=1 runs anvil and solana-test-validator from PATH instead of docker (Apple Silicon).
 demo:
-	@if [ -n "$(DOCKER_OK)" ]; then bun demo/demo.ts; \
+	@if [ -n "$(DOCKER_OK)" ] || [ "$$DEMO_NATIVE_CHAINS" = 1 ]; then bun demo/demo.ts; \
 	else echo "docker not available: running the offline replay (make demo-replay) instead"; bun demo/demo.ts --replay; fi
 
 # Same as demo, and records every HTTP exchange into demo/fixtures/replay/ for demo-replay.

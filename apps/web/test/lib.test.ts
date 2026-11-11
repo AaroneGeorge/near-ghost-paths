@@ -64,3 +64,11 @@ describe("paymentsCsv dedupe (REVIEW L3)", () => {
     expect(csv.split("\n")[1]?.startsWith("3,")).toBe(true);
   });
 });
+
+test("fmtAmount trims to 6 decimals and keeps the sign", async () => {
+  const { fmtAmount } = await import("../src/lib.ts");
+  expect(fmtAmount("+0.009948456955447")).toBe("+0.009948");
+  expect(fmtAmount("0.1")).toBe("0.1");
+  expect(fmtAmount("0")).toBe("0");
+  expect(fmtAmount("1.000000001")).toBe("1");
+});

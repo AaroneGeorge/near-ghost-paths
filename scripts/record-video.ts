@@ -38,7 +38,7 @@ const { chromium } = (await import(join(ROOT, "apps/web/node_modules/playwright"
 
 const replay = process.env.VIDEO_SOURCE === "replay";
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-const work = join(ROOT, "runs", `video-${stamp}`);
+const work = process.env.VIDEO_WORK ?? join(ROOT, "runs", `video-${stamp}`);
 const outDir = join(ROOT, "docs", "video");
 mkdirSync(work, { recursive: true });
 mkdirSync(outDir, { recursive: true });
@@ -62,13 +62,32 @@ async function sh(
   return { out: out + (code === 0 ? "" : err), code };
 }
 
+// The terminal playback runs on page timers; Chrome throttles those in pages it considers hidden
+// (seen with Chrome for Testing on macOS: the render stalled), so switch the throttling off.
+const NO_THROTTLE = [
+  "--disable-background-timer-throttling",
+  "--disable-renderer-backgrounding",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-features=IntensiveWakeUpThrottling",
+];
+
 /** Playwright wants the chromium build it was released with; fall back to any installed one. */
 function findChromium(): string | undefined {
   if (existsSync(chromium.executablePath())) return undefined;
-  const base = process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(homedir(), ".cache", "ms-playwright");
+  const base =
+    process.env.PLAYWRIGHT_BROWSERS_PATH ??
+    (process.platform === "darwin"
+      ? join(homedir(), "Library", "Caches", "ms-playwright")
+      : join(homedir(), ".cache", "ms-playwright"));
   if (!existsSync(base)) return undefined;
+  const subs = [
+    "chrome-linux64/chrome",
+    "chrome-linux/chrome",
+    "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "chrome-mac/Chromium.app/Contents/MacOS/Chromium",
+  ];
   for (const d of readdirSync(base).sort().reverse()) {
-    for (const sub of ["chrome-linux64/chrome", "chrome-linux/chrome"]) {
+    for (const sub of subs) {
       const p = join(base, d, sub);
       if (d.startsWith("chromium-") && existsSync(p)) return p;
     }
@@ -133,11 +152,11 @@ async function startServe(home: string | undefined): Promise<string> {
   throw new Error("ghost serve did not start");
 }
 
-// Injected into the UI page: a caption bar (same look as the terminal part) and a click ripple.
+// Injected into the UI page: a caption bar in the app's own look, and a click ripple.
 const UI_INIT = `
 window.addEventListener('DOMContentLoaded',()=>{
   const s=document.createElement('style');
-  s.textContent='body{padding-bottom:110px!important}#gpcap{position:fixed;left:0;right:0;bottom:0;height:92px;z-index:99999;pointer-events:none;background:#10141a;border-top:2px solid #2a3140;padding:12px 28px;font:600 21px/1.3 "DejaVu Sans",sans-serif;color:#f1f3f6;display:flex;align-items:center}.gprip{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid #ffd866;border-radius:50%;z-index:99998;pointer-events:none;animation:gprip .6s ease-out forwards}@keyframes gprip{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(1.6)}}';
+  s.textContent='body{padding-bottom:110px!important}#gpcap{position:fixed;left:0;right:0;bottom:0;height:92px;z-index:99999;pointer-events:none;background:#142320;padding:12px 40px;font:600 21px/1.35 "Figtree Variable",-apple-system,sans-serif;color:#f3f7f5;display:flex;align-items:center;gap:16px}#gpcap:before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:#8fe3bd;box-shadow:0 0 0 5px rgba(143,227,189,.18)}.gprip{position:fixed;width:34px;height:34px;margin:-17px 0 0 -17px;border:3px solid #0e5e4a;border-radius:50%;z-index:99998;pointer-events:none;animation:gprip .6s ease-out forwards}@keyframes gprip{from{opacity:1;transform:scale(.4)}to{opacity:0;transform:scale(1.6)}}';
   document.head.appendChild(s);
   const c=document.createElement('div');c.id='gpcap';document.body.appendChild(c);
   window.__cap=t=>{c.textContent=t};
@@ -145,8 +164,9 @@ window.addEventListener('DOMContentLoaded',()=>{
 window.addEventListener('mousedown',e=>{const r=document.createElement('div');r.className='gprip';r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';document.body.appendChild(r);setTimeout(()=>r.remove(),700)},true);
 `;
 
+/** The new web app, start to finish: send, receipt, inbox, withdraw, what others see, accountant. */
 async function recordUi(base: string): Promise<Segment> {
-  const browser = await chromium.launch({ executablePath: findChromium() });
+  const browser = await chromium.launch({ executablePath: findChromium(), args: NO_THROTTLE });
   const ctx = await browser.newContext({
     viewport: { width: 1280, height: 720 },
     recordVideo: { dir: join(work, "webm-ui"), size: { width: 1280, height: 720 } },
@@ -157,87 +177,122 @@ async function recordUi(base: string): Promise<Segment> {
   const cap = (t: string) =>
     page.evaluate((x) => (window as never as { __cap(t: string): void }).__cap(x), t);
   const tid = (id: string) => page.getByTestId(id);
-  const center = (id: string, nth = 0) =>
-    tid(id)
-      .nth(nth)
-      .evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "center" }));
+  const center = (l: import("playwright").Locator) =>
+    l.evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "center" }));
+  const top = () => page.evaluate(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  const typeIn = async (id: string, text: string) => {
+    await tid(id).fill("");
+    await tid(id).pressSequentially(text, { delay: 55 });
+  };
+  const still = async (name: string) => {
+    // README screenshots from the same run, without the caption bar
+    if (replay) return;
+    await page.evaluate(() => {
+      const c = document.getElementById("gpcap");
+      if (c) c.style.display = "none";
+    });
+    await page.screenshot({ path: join(ROOT, "docs", "img", name) });
+    await page.evaluate(() => {
+      const c = document.getElementById("gpcap");
+      if (c) c.style.display = "flex";
+    });
+  };
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   try {
     await page.goto(`${base}/?token=${TOKEN}`);
     await tid("status")
-      .getByText(/live|simulated/)
+      .getByText(/NEAR|Demo mode/)
       .waitFor();
+    await tid("registered").getByText("Ready").waitFor();
     const trim = Math.max(0.4, (Date.now() - t0) / 1000 - 0.35);
-    const live = replay
-      ? "simulated chains, replayed: no network"
-      : "live: real NEAR testnet and MPC, local anvil and Solana";
-    await cap(
-      `Same flow in the browser (${live}). Keys stay in the server process, never in the page.`,
-    );
-    await page.getByTestId("recipient").waitFor();
-    await page.waitForTimeout(500);
-    await tid("payer").selectOption("alice");
-    await tid("recipient").fill("bob");
-    await tid("registered").getByText("registered", { exact: true }).waitFor();
-    await tid("memo").fill("invoice #44");
-    await page.waitForTimeout(1500);
-    await cap(
-      "Send: Alice pays Bob 0.01 ETH. The MPC derives a one-time address, then a relayer posts the announcement to NEAR.",
-    );
+    const where = replay
+      ? "Demo mode: simulated networks, real privacy math."
+      : "Live on NEAR testnet.";
+    await cap(`The Ghost Paths web app. ${where} Alice pays Bob with just his NEAR name.`);
+    await page.waitForTimeout(1800);
+    await typeIn("memo", "invoice #44");
+    await page.waitForTimeout(900);
     await tid("send").click();
+    await cap(
+      "Ghost Paths makes a brand-new address for this payment, pays it, and leaves Bob an encrypted note on NEAR.",
+    );
     await tid("pay-result").waitFor({ timeout: 120_000 });
-    await page.waitForTimeout(600);
-    await cap("The payment went to a one-time address. The announcement has no recipient field.");
-    await center("onetime-address");
-    await page.waitForTimeout(2000);
-    await center("announcement");
-    await page.waitForTimeout(2500);
+    await cap("Sent. The money sits at an address used once. Nothing on-chain says it's Bob's.");
+    await page.waitForTimeout(1600);
+    await still("ui-send.png");
+    await page.waitForTimeout(1600);
+    await center(tid("onetime-address"));
+    await page.waitForTimeout(1600);
+    await tid("pay-details").locator("summary").click();
+    await page.waitForTimeout(300);
+    await center(tid("announcement"));
+    await cap(
+      "Everything NEAR recorded: a key, a one-byte hint and an encrypted note. No recipient field.",
+    );
+    await page.waitForTimeout(3000);
 
-    await cap(
-      "Scan as the recipient: Bob's viewing key finds the new payment, status unspent. Earlier ones are already swept.",
-    );
-    await tid("to-scan").click();
-    await tid("scan-result").waitFor();
-    const row = tid("payment-row").filter({ hasText: "invoice #44" }).first();
-    await row.waitFor();
-    await page.evaluate(() => window.scrollTo({ top: 0 }));
-    await page.waitForTimeout(1300);
-    await row.evaluate((e) => e.scrollIntoView({ behavior: "smooth", block: "center" }));
-    await page.waitForTimeout(2200);
-    await cap(
-      "Scan as a stranger: a random key reads the same public log and finds 0 payments. The log names no recipient.",
-    );
-    await tid("view-stranger").click();
-    await tid("stranger-run").click();
-    await tid("stranger-result").waitFor();
-    await page.evaluate(() => window.scrollTo({ top: 0 }));
-    await page.waitForTimeout(2200);
-    await center("public-log");
-    await page.waitForTimeout(2200);
-
-    await cap(
-      "Sweep: a relayer submits, the contract asks the MPC to sign, the funds move to a throwaway address (local demo chain).",
-    );
-    await tid("tab-sweep").click();
-    await tid("payment-option").first().waitFor();
+    await top();
     await page.waitForTimeout(500);
-    await page.locator('[data-testid="payment-option"]:not([disabled])').first().click();
-    await tid("fresh-dest").click();
-    await page.waitForTimeout(1200);
-    await tid("sweep").click();
-    await page.evaluate(() => window.scrollTo({ top: 0 }));
-    await tid("sweep-result").waitFor({ timeout: 180_000 });
+    await tid("to-inbox").click();
     await cap(
-      "The balance moved. On NEAR the record is a contract call with an opaque path: nothing names Bob.",
+      "Bob's inbox: only his key finds the payment among everyone's notes, with the note decrypted.",
     );
-    await page.waitForTimeout(400);
-    await center("bal-delta");
-    await page.waitForTimeout(4200);
+    const row = tid("payment-row").filter({ hasText: "invoice #44" }).last(); // newest
+    await row.waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(1200);
+    await center(row);
+    await page.waitForTimeout(1200);
+    await still("ui-inbox.png");
+    await page.waitForTimeout(1200);
+    await row.getByTestId("withdraw").click();
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll<HTMLInputElement>('[data-testid="dest"]')].some(
+        (i) => i.value.length > 0,
+      ),
+    );
+    await page.waitForTimeout(500);
+    await center(row.getByTestId("sweep"));
+    await cap(
+      "Withdraw: Bob approves with his key. A helper submits it, so nothing on NEAR points to his account.",
+    );
+    await page.waitForTimeout(2200);
+    await row.getByTestId("sweep").click();
+    await cap(
+      "NEAR Chain Signatures signs for the one-time address: one NEAR contract, no Ethereum key.",
+    );
+    await row.getByTestId("sweep-result").waitFor({ timeout: 180_000 });
+    await center(row.getByTestId("sweep-result"));
+    await cap(
+      "Arrived. On NEAR the record is a contract and a random-looking code. It doesn't name Bob.",
+    );
+    await page.waitForTimeout(3600);
+
+    await tid("tab-public").click();
+    await cap(
+      "What everyone else sees: a fresh key reads the same public record and traces 0 payments.",
+    );
+    await tid("public-log").waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(2800);
+    await center(tid("public-log"));
+    await cap(
+      "The public record has no 'for' column to fill. Amounts and timing stay public: who, not how much.",
+    );
+    await page.waitForTimeout(3200);
+
+    await tid("tab-accountant").click();
+    await cap(
+      "An accountant gets a read-only key: every payment and note, a CSV export, and no way to move money.",
+    );
+    await page.waitForTimeout(1400);
+    await tid("bundle-bob").click();
+    await tid("auditor-result").waitFor({ timeout: 60_000 });
+    await page.waitForTimeout(1600);
+    await tid("export-csv").hover();
+    await page.waitForTimeout(2800);
     if (errors.length) log(`browser errors: ${errors.join(" | ")}`);
     const seconds = (Date.now() - t0) / 1000 - trim;
-    const shot = join(work, "ui-last.png");
-    await page.screenshot({ path: shot });
+    await page.screenshot({ path: join(work, "ui-last.png") });
     await ctx.close();
     const webm = readdirSync(join(work, "webm-ui")).find((f) => f.endsWith(".webm"));
     if (!webm) throw new Error("Playwright wrote no UI video");
@@ -296,7 +351,7 @@ function splitSteps(text: string): { intro: string[]; steps: Map<number, Scene> 
 const PLANS: Plan[] = [
   {
     steps: [1],
-    seconds: 9,
+    seconds: 8,
     title: "1. Infrastructure: NEAR testnet accounts, contract, local chains, MPC root keys",
     caption: replay
       ? "REPLAYED recording of a real run, no network. The same calls hit NEAR testnet and the Chain Signatures MPC when run live."
@@ -306,7 +361,7 @@ const PLANS: Plan[] = [
   },
   {
     steps: [2],
-    seconds: 8,
+    seconds: 7,
     title: "2. Bob registers one meta-address",
     caption:
       "Bob registers one meta-address in a NEAR contract: a spend key and a view key. He holds no ETH, SOL or BTC key at all.",
@@ -315,7 +370,7 @@ const PLANS: Plan[] = [
   },
   {
     steps: [3, 4],
-    seconds: 12,
+    seconds: 9,
     title: "3. Alice pays Bob: 0.01 ETH, then 0.1 SOL",
     caption:
       "Alice pays a fresh one-time address the MPC derives for the Ghost Paths contract. The NEAR announcement has no recipient field.",
@@ -330,7 +385,7 @@ const PLANS: Plan[] = [
   },
   {
     steps: [5],
-    seconds: 12,
+    seconds: 8,
     title: "4. Who can see the payments? stranger, recipient, auditor",
     caption: "A stranger scanning the same log finds nothing.",
     highlight: /carol scanned|bob scanned|invoice #4[23]|viewing key only|auditor \(/,
@@ -345,7 +400,7 @@ const PLANS: Plan[] = [
   },
   {
     steps: [6, 7],
-    seconds: 12,
+    seconds: 9,
     title: "5. Bob sweeps both payments through the relayer and the MPC",
     caption:
       "Bob signs a sweep authorisation. A relayer submits it, the contract verifies it and asks the MPC to sign. The destination is inside the signed digest.",
@@ -364,23 +419,34 @@ function terminalHtml(): string {
   const badge = replay
     ? "REPLAYED recording of a real run (offline), abridged"
     : "make demo: real run, output abridged";
+  const font = (pkg: string, file: string) =>
+    `file://${join(ROOT, "apps/web/node_modules", pkg, "files", file)}`;
   return `<!doctype html><html><head><meta charset="utf-8"><style>
-  *{box-sizing:border-box} html,body{margin:0;background:#0b0e13;color:#d7dce2;width:1280px;height:720px;overflow:hidden;
-    font-family:"DejaVu Sans Mono",monospace}
-  #bar{height:30px;background:#171b22;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#8b93a1;gap:8px}
-  #bar i{width:11px;height:11px;border-radius:50%;background:#394150;display:inline-block}
-  #bar b{margin-left:auto;color:#e0b341;font-weight:400}
+  @font-face{font-family:Bricolage;src:url("${font("@fontsource-variable/bricolage-grotesque", "bricolage-grotesque-latin-wght-normal.woff2")}") format("woff2");font-weight:200 800}
+  @font-face{font-family:Figtree;src:url("${font("@fontsource-variable/figtree", "figtree-latin-wght-normal.woff2")}") format("woff2");font-weight:300 900}
+  @font-face{font-family:JBMono;src:url("${font("@fontsource/jetbrains-mono", "jetbrains-mono-latin-400-normal.woff2")}") format("woff2");font-weight:400}
+  @font-face{font-family:JBMono;src:url("${font("@fontsource/jetbrains-mono", "jetbrains-mono-latin-700-normal.woff2")}") format("woff2");font-weight:700}
+  *{box-sizing:border-box} html,body{margin:0;background:#0f1a17;color:#d3e0db;width:1280px;height:720px;overflow:hidden;
+    font-family:JBMono,Menlo,monospace}
+  #bar{height:30px;background:#16241f;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#7f9690;gap:8px}
+  #bar i{width:11px;height:11px;border-radius:50%;background:#2c3b37;display:inline-block}
+  #bar b{margin-left:auto;color:#8fe3bd;font-weight:400}
   #term{position:absolute;top:30px;left:0;right:0;bottom:92px;padding:8px 16px;font-size:15px;line-height:19px;
     white-space:pre-wrap;word-break:break-all;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-  .l{min-height:19px;flex-shrink:0} .h{color:#ffd866;font-weight:700} .sc{color:#7fd1ff;font-weight:700}
-  #cap{position:absolute;left:0;right:0;bottom:0;height:92px;background:#10141a;border-top:2px solid #2a3140;
-    padding:12px 28px;font:600 21px/1.3 "DejaVu Sans",sans-serif;color:#f1f3f6;display:flex;align-items:center}
-  #card{position:absolute;inset:0;background:#0b0e13;display:none;flex-direction:column;justify-content:center;
-    padding:0 80px;font-family:"DejaVu Sans",sans-serif}
-  #card h1{font-size:58px;margin:0 0 16px;letter-spacing:.5px} #card p{font-size:26px;line-height:1.42;margin:6px 0;color:#c9cfd8}
-  #card code{font:600 27px "DejaVu Sans Mono",monospace;color:#ffd866}
-  #card small{font-size:19px;line-height:1.4;color:#8b93a1;margin-top:22px;display:block}
-  #card ul{font-size:24px;line-height:1.42;margin:8px 0;padding-left:28px;color:#c9cfd8} #card li b{color:#fff}
+  .l{min-height:19px;flex-shrink:0} .h{color:#b9f0d6;font-weight:700} .sc{color:#f3f7f5;font-weight:700}
+  #cap{position:absolute;left:0;right:0;bottom:0;height:92px;background:#142320;border-top:1px solid #24352f;
+    padding:12px 40px;font:600 21px/1.35 Figtree,-apple-system,sans-serif;color:#f3f7f5;display:flex;align-items:center;gap:16px}
+  #cap:before{content:"";flex:none;width:10px;height:10px;border-radius:50%;background:#8fe3bd;box-shadow:0 0 0 5px rgba(143,227,189,.18)}
+  #card{position:absolute;inset:0;background:#edf0f2;color:#142320;display:none;flex-direction:column;justify-content:center;
+    padding:0 110px;font-family:Figtree,-apple-system,sans-serif}
+  #card .mark{width:58px;height:58px;border-radius:50%;background:#b9f0d6;color:#0a4a3a;display:grid;place-items:center;margin-bottom:26px}
+  #card h1{font:600 64px/1.05 Bricolage,sans-serif;letter-spacing:-.03em;margin:0 0 18px}
+  #card p{font-size:27px;line-height:1.42;margin:6px 0;color:#2c3b37;max-width:30em}
+  #card code{font:400 21px JBMono,monospace;white-space:nowrap;color:#0e5e4a;background:#fff;border:1px solid #d7dfdc;border-radius:10px;padding:4px 10px;display:inline-block;margin:4px 0}
+  #card small{font-size:19px;line-height:1.4;color:#5d6c68;margin-top:26px;display:block}
+  #card ul{list-style:none;font-size:23px;line-height:1.4;margin:10px 0 0;padding:0;color:#2c3b37;display:grid;gap:12px}
+  #card li{display:grid;grid-template-columns:24px 1fr;gap:14px} #card li:before{content:"";width:10px;height:10px;border-radius:50%;background:#d08a1c;margin-top:12px}
+  #card li.ok:before{background:#0e5e4a} #card li b{color:#142320}
   </style></head><body>
   <div id="bar"><i></i><i></i><i></i><span>ghost-paths: make demo</span><b>${badge}</b></div>
   <div id="term"></div>
@@ -388,85 +454,142 @@ function terminalHtml(): string {
   <div id="card"></div>
   <script>
   const term=document.getElementById('term'), cap=document.getElementById('cap'), card=document.getElementById('card');
-  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   window.card=h=>{card.innerHTML=h;card.style.display='flex';cap.style.display='none';};
   window.hideCard=()=>{card.style.display='none';cap.style.display='flex';};
   window.setCaption=t=>{cap.textContent=t};
-  window.playScene=async(title,lines,seconds,hl,beats)=>{
-    const t=document.createElement('div');t.className='l sc';t.textContent=title;term.appendChild(t);
-    const w=lines.map((l,i)=>hl.includes(i)?2.6:1);const total=w.reduce((a,b)=>a+b,0)||1;
-    const budget=seconds*1000*0.85;
-    for(let i=0;i<lines.length;i++){
-      const d=document.createElement('div');d.className='l'+(hl.includes(i)?' h':'');d.textContent=lines[i]||' ';
-      term.appendChild(d);
-      while(term.scrollHeight>term.clientHeight+2&&term.firstChild&&term.children.length>1)term.removeChild(term.firstChild);
-      if(beats[i])cap.textContent=beats[i];
-      await sleep(budget*w[i]/total);
-    }
-    await sleep(seconds*1000*0.15);
-  };
+  // Pacing lives in Node (page.waitForTimeout): page timers stalled mid-render on macOS.
+  const add=(cls,text)=>{const d=document.createElement('div');d.className='l'+cls;d.textContent=text||' ';term.appendChild(d);
+    while(term.scrollHeight>term.clientHeight+2&&term.children.length>1)term.removeChild(term.firstElementChild);};
+  window.addTitle=t=>add(' sc',t);
+  window.addLine=(t,hl,beat)=>{add(hl?' h':'',t);if(beat)cap.textContent=beat;};
   </script></body></html>`;
 }
 
-async function recordPage(
+/**
+ * Renders a page as stills: `snap(seconds)` screenshots the page and holds that frame for the given
+ * time; ffmpeg then joins the stills with exact durations. Deterministic, and independent of page
+ * timers and real-time screen recording (both stalled mid-render on macOS).
+ */
+async function renderStills(
   name: string,
   fn: (
     call: (f: string, ...a: unknown[]) => Promise<unknown>,
-    page: import("playwright").Page,
+    snap: (seconds: number) => Promise<void>,
+    shot: (path: string) => Promise<void>,
   ) => Promise<void>,
 ): Promise<Segment> {
   const pagePath = join(work, "terminal.html");
   writeFileSync(pagePath, terminalHtml());
-  const browser = await chromium.launch({ executablePath: findChromium() });
-  const ctx = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    recordVideo: { dir: join(work, `webm-${name}`), size: { width: 1280, height: 720 } },
-  });
-  const t0 = Date.now();
-  const page = await ctx.newPage();
-  await page.goto(`file://${pagePath}`);
-  const call = (f: string, ...a: unknown[]) =>
-    page.evaluate(`${f}(${a.map((x) => JSON.stringify(x)).join(",")})`);
-  const trim = (Date.now() - t0) / 1000;
-  const t1 = Date.now();
-  await fn(call, page);
-  const seconds = (Date.now() - t1) / 1000;
-  await ctx.close();
-  await browser.close();
-  const webm = readdirSync(join(work, `webm-${name}`)).find((f) => f.endsWith(".webm"));
-  if (!webm) throw new Error("Playwright wrote no video");
-  return { webm: join(work, `webm-${name}`, webm), trim, seconds };
+  const dir = join(work, `stills-${name}`);
+  mkdirSync(dir, { recursive: true });
+  const frames: { file: string; seconds: number }[] = [];
+  // The headless browser occasionally vanished or froze mid-render on macOS, leaving Playwright
+  // waiting forever. Every step has a deadline; on a miss the browser is relaunched and the page
+  // state rebuilt by replaying the calls made so far (the page is a pure function of them).
+  const history: string[] = [];
+  let browser: import("playwright").Browser | undefined;
+  let page: import("playwright").Page | undefined;
+  const deadline = <T>(p: Promise<T>, ms: number, what: string): Promise<T> =>
+    Promise.race([
+      p,
+      new Promise<T>((_, rej) => setTimeout(() => rej(new Error(`${what} timed out`)), ms)),
+    ]);
+  const open = async () => {
+    await browser?.close().catch(() => undefined);
+    // Stills need no vsync: with a sleeping or locked display macOS gives Chrome no display link
+    // ("CVDisplayLinkCreateWithCGDisplay failed"), which is when the renders stalled.
+    const args = [
+      ...NO_THROTTLE,
+      "--disable-gpu-vsync",
+      "--disable-frame-rate-limit",
+      "--disable-gpu",
+    ];
+    browser = await chromium.launch({ executablePath: findChromium(), args });
+    page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+    await page.goto(`file://${pagePath}`);
+    await page.evaluate(() => document.fonts.ready);
+    for (const expr of history) await page.evaluate(expr);
+  };
+  const retry = async <T>(what: string, step: () => Promise<T>): Promise<T> => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        if (!page) await deadline(open(), 30_000, "browser launch");
+        return await deadline(step(), 15_000, what);
+      } catch (e) {
+        if (attempt >= 3) throw e;
+        log(`stills ${name}: ${(e as Error).message}; relaunching the browser (${attempt + 1}/3)`);
+        page = undefined;
+      }
+    }
+  };
+  const call = async (f: string, ...a: unknown[]) => {
+    const expr = `${f}(${a.map((x) => JSON.stringify(x)).join(",")})`;
+    await retry(f, async () => page?.evaluate(expr));
+    history.push(expr);
+  };
+  const shot = (path: string) =>
+    retry("screenshot", async () => {
+      await page?.screenshot({ path, timeout: 12_000 });
+    });
+  const snap = async (seconds: number) => {
+    const file = join(dir, `${String(frames.length).padStart(4, "0")}.png`);
+    await shot(file);
+    frames.push({ file, seconds });
+  };
+  try {
+    await fn(call, snap, shot);
+  } finally {
+    await browser?.close().catch(() => undefined);
+  }
+  const seconds = frames.reduce((x, f) => x + f.seconds, 0);
+  const last = frames[frames.length - 1];
+  if (!last) throw new Error(`no frames for ${name}`);
+  // concat demuxer: each still with its duration; the last file is listed twice (ffmpeg quirk)
+  const list = join(dir, "list.txt");
+  writeFileSync(
+    list,
+    `${frames.map((f) => `file '${f.file}'\nduration ${f.seconds.toFixed(3)}`).join("\n")}\nfile '${last.file}'\n`,
+  );
+  const out = join(work, `${name}.mp4`);
+  const enc = await sh([
+    "ffmpeg",
+    ...["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", list],
+    ...["-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "18", out],
+  ]);
+  if (enc.code !== 0) throw new Error(`ffmpeg (stills ${name}) failed: ${enc.out}`);
+  return { webm: out, trim: 0, seconds };
 }
 
 const TITLE_SECONDS = 5;
 const LIMITS_SECONDS = 11;
 const END_SECONDS = 6;
 
-const TITLE_CARD = `<h1>Ghost Paths</h1>
-  <p>Pay a NEAR account at a fresh one-time address on Ethereum or Solana. The chain never names the recipient; amounts and timing stay public.</p>
-  <p>One NEAR account and no chain keys: NEAR Chain Signatures (MPC) own the addresses.</p>
-  <small>Built at NEAR HACKATHON · testnet and local chains only</small>`;
+const GHOST_MARK = `<div class="mark"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01"/><path d="M15 10h.01"/><path d="M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/></svg></div>`;
 
-const LIMITS_CARD = `<h1 style="font-size:46px">What is not private, and what was not shown</h1><ul>
+const TITLE_CARD = `${GHOST_MARK}<h1>Ghost Paths</h1>
+  <p>Pay anyone on Ethereum or Solana with just their NEAR account name. The money lands at a brand-new address that nobody else can tie to them.</p>
+  <small>NEAR Chain Signatures owns the addresses, so the recipient holds no Ethereum or Solana key. Built at NEAR HACKATHON. Testnet and local chains only.</small>`;
+
+const LIMITS_CARD = `<h1 style="font-size:50px">What Ghost Paths doesn't hide, and what this video doesn't show</h1><ul>
   <li>Amounts and timing are public. Ghost Paths hides who, not how much.</li>
-  <li>The view tag leaks one byte; with three demo accounts that can identify the recipient.</li>
-  <li>Sweeping several payments to one address links them. A relayer sees each sweep request.</li>
-  <li><b>Bitcoin: addresses derive, no payment demoed.</b></li>
-  <li><b>Confidential 1Click sweep: needs an API key, not run, not shown.</b></li>
-  <li>${replay ? "Replayed, not live." : "Testnet NEAR plus local chains."} Tiny anonymity set. Not audited.</li></ul>`;
+  <li>The one-byte hint in each note can identify the recipient among the three demo accounts.</li>
+  <li>Withdrawing several payments to one address links them. The helper (relayer) sees each request.</li>
+  <li><b>Bitcoin: addresses derive, no payment shown. Confidential 1Click withdrawals: not run.</b></li>
+  <li>${replay ? "Replayed, not live." : "NEAR testnet plus local chains."} Tiny anonymity set. Not audited.</li>
+  <li class="ok">The recipient's name is never written on NEAR or on the payment's chain.</li></ul>`;
 
-const END_CARD = `<h1>Ghost Paths</h1>
-  <p>ERC-5564-style stealth addresses on Ethereum and Solana from one NEAR account, signed by Chain Signatures.</p>
-  <p style="margin-top:26px"><code>git clone https://github.com/AaroneGeorge/near-ghost-paths</code><br><code>make demo</code> <span style="color:#8b93a1;font-size:22px">(or <code style="font-size:22px">make demo-replay</code>, offline)</span></p>
-  <small>Aarone George · built at NEAR HACKATHON · same submitter: Tripwire (injection-proof policy changes for agent wallets)</small>`;
+const END_CARD = `${GHOST_MARK}<h1>Ghost Paths</h1>
+  <p>Private payments on Ethereum and Solana from one NEAR account, signed by Chain Signatures.</p>
+  <p style="margin-top:22px"><code>git clone https://github.com/AaroneGeorge/near-ghost-paths</code><br><code>make demo</code> <span style="color:#5d6c68;font-size:21px">or <code style="font-size:20px">make demo-replay</code> offline</span></p>
+  <small>Aarone George. Built at NEAR HACKATHON. Also by the same submitter: Tripwire (injection-proof policy changes for agent wallets).</small>`;
 
-async function renderTerminal(text: string): Promise<Segment> {
+async function renderTerminal(text: string, scale = 1): Promise<Segment> {
   const { steps } = splitSteps(text);
-  return recordPage("term", async (call, page) => {
+  return renderStills("term", async (call, snap) => {
     await call("window.card", TITLE_CARD);
-    await page.waitForTimeout(TITLE_SECONDS * 1000);
+    await snap(TITLE_SECONDS);
     await call("window.hideCard");
-    for (const [n, plan] of PLANS.entries()) {
+    for (const plan of PLANS) {
       const lines: string[] = [];
       for (const s of plan.steps) {
         const sc = steps.get(s);
@@ -480,40 +603,80 @@ async function renderTerminal(text: string): Promise<Segment> {
         if (i >= 0) beats[i] = b.text;
       }
       await call("window.setCaption", plan.caption);
-      await call("window.playScene", plan.title, lines, plan.seconds, hl, beats);
+      await call("window.addTitle", plan.title);
+      const seconds = plan.seconds * scale;
+      const w = lines.map((_, i) => (hl.includes(i) ? 2.6 : 1));
+      const total = w.reduce((x, y) => x + y, 0) || 1;
+      for (let i = 0; i < lines.length; i++) {
+        await call("window.addLine", lines[i], hl.includes(i), beats[i] ?? null);
+        // the scene's last line also holds the closing pause
+        const hold = (seconds * 0.85 * (w[i] ?? 1)) / total;
+        await snap(i === lines.length - 1 ? hold + seconds * 0.15 : hold);
+      }
     }
   });
 }
 
 async function renderCards(): Promise<Segment> {
-  return recordPage("cards", async (call, page) => {
+  return renderStills("cards", async (call, snap, shot) => {
     await call("window.card", LIMITS_CARD);
-    await page.waitForTimeout(LIMITS_SECONDS * 1000);
+    await snap(LIMITS_SECONDS);
     await call("window.card", END_CARD);
-    await page.waitForTimeout(500);
-    await page.screenshot({ path: join(outDir, "poster.png") });
-    await page.waitForTimeout(END_SECONDS * 1000 - 500);
+    await shot(join(outDir, "poster.png"));
+    await snap(END_SECONDS);
   });
 }
 
 // ---------------------------------------------------------------- main
+/**
+ * The live browser take runs in its own process: on macOS a second Playwright browser in the same
+ * process crashed or hung, while the first one in a fresh process always worked. One retry.
+ */
+async function recordUiInChild(home: string | undefined): Promise<Segment> {
+  const out = join(work, "ui-segment.json");
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { out: log2, code } = await sh(["bun", "scripts/record-video.ts"], {
+      VIDEO_PART: "ui",
+      VIDEO_WORK: work,
+      VIDEO_PART_HOME: home ?? "",
+    });
+    if (code === 0 && existsSync(out)) return JSON.parse(readFileSync(out, "utf8")) as Segment;
+    log(`UI take ${attempt} failed: ${log2.trim().split("\n").slice(-3).join(" | ")}`);
+    rmSync(join(work, "webm-ui"), { recursive: true, force: true });
+  }
+  throw new Error("the web app take failed twice");
+}
+
 async function main(): Promise<void> {
   const { text, home } = await captureDemo();
   writeFileSync(
     join(outDir, "demo-capture.txt"),
     `# Captured stdout of ${replay ? "make demo-replay (offline replay)" : "KEEP=1 make demo (real run: NEAR testnet + MPC, local anvil + Solana validator)"}, ${new Date().toISOString()}.\n# The video plays an abridged selection of these lines; step 8 (1Click dry quote) is not in the video.\n# Local paths are shortened; no keys are printed by the demo.\n\n${text}`,
   );
-  const base = await startServe(home);
-  const ui = await recordUi(base);
-  log(`UI part: ${ui.seconds.toFixed(1)} s`);
-  serve?.kill();
+  // Stills first: on macOS the still renders stalled when they ran after the live browser take
+  // in the same process, and never when they ran first.
   const term = await renderTerminal(text);
   log(`terminal part (incl. title card): ${term.seconds.toFixed(1)} s`);
   const cards = await renderCards();
 
+  log("building the web app (ghost serve serves apps/web/dist)");
+  const built = await sh(["make", "web-build"]);
+  if (built.code !== 0) throw new Error(`web build failed:\n${built.out.slice(-800)}`);
+  const ui = await recordUiInChild(home);
+  log(`UI part: ${ui.seconds.toFixed(1)} s`);
+  // Fit under 2:00: the live waits (payment, MPC signature) make the browser part vary; if it runs
+  // long it is played slightly faster (at most 1.35x).
+  const TARGET = 118;
+  const over = term.seconds + ui.seconds + cards.seconds - TARGET;
+  const uiSpeed = over > 0 ? ui.seconds / (ui.seconds - over) : 1;
+  if (uiSpeed > 1.35)
+    throw new Error(`UI part is ${ui.seconds.toFixed(0)} s: too long to fit 2:00`);
+  log(`UI played at ${uiSpeed.toFixed(2)}x`);
+
   const mp4 = join(outDir, "ghost-paths-demo.mp4");
-  const f = (i: number, s: Segment) =>
-    `[${i}:v]trim=start=${s.trim.toFixed(2)}:duration=${s.seconds.toFixed(2)},setpts=PTS-STARTPTS,scale=1280:720,fps=30,setsar=1[v${i}]`;
+  // input 0 and 2 are mp4s made from stills, input 1 the Playwright webm of the web app
+  const f = (i: number, s: Segment, speed = 1) =>
+    `[${i}:v]trim=start=${s.trim.toFixed(2)}:duration=${s.seconds.toFixed(2)},setpts=(PTS-STARTPTS)/${speed.toFixed(3)},scale=1280:720,fps=30,setsar=1[v${i}]`;
   const enc = await sh([
     "ffmpeg",
     "-y",
@@ -526,7 +689,7 @@ async function main(): Promise<void> {
     "-i",
     cards.webm,
     "-filter_complex",
-    `${f(0, term)};${f(1, ui)};${f(2, cards)};[v0][v1][v2]concat=n=3:v=1:a=0[out]`,
+    `${f(0, term)};${f(1, ui, uiSpeed)};${f(2, cards)};[v0][v1][v2]concat=n=3:v=1:a=0[out]`,
     "-map",
     "[out]",
     "-c:v",
@@ -564,6 +727,21 @@ async function main(): Promise<void> {
   }
 }
 
+if (process.env.VIDEO_PART === "ui") {
+  // child process: record the live web app take only, report the segment as JSON
+  try {
+    const base = await startServe(process.env.VIDEO_PART_HOME || undefined);
+    const ui = await recordUi(base);
+    writeFileSync(join(work, "ui-segment.json"), JSON.stringify(ui));
+  } catch (e) {
+    console.error(`[video] UI take failed: ${(e as Error).message}`);
+    process.exitCode = 1;
+  } finally {
+    serve?.kill();
+  }
+  process.exit(process.exitCode ?? 0);
+}
+
 try {
   await main();
 } catch (e) {
@@ -576,3 +754,5 @@ try {
     await sh(["make", "demo-clean"]);
   }
 }
+// A stuck Playwright promise must not keep the process alive after a failure.
+process.exit(process.exitCode ?? 0);

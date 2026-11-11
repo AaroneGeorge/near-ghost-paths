@@ -1,4 +1,4 @@
-/** App-wide state. The auditor's viewing bundle lives in memory only (never localStorage): it reveals every incoming payment. */
+/** App-wide state. The accountant's viewing key lives in memory only (never localStorage): it reveals every incoming payment. */
 import {
   type ReactNode,
   createContext,
@@ -9,10 +9,9 @@ import {
   useState,
 } from "react";
 import { api } from "./api.ts";
-import type { Config, PayResult, PaymentRow, ViewingBundle } from "./types.ts";
+import type { Config, PayResult, ViewingBundle } from "./types.ts";
 
-export type TabId = "send" | "scan" | "sweep" | "auditor";
-export type ScanView = "recipient" | "auditor" | "stranger";
+export type TabId = "send" | "inbox" | "public" | "accountant";
 
 interface Store {
   cfg: Config | null;
@@ -24,14 +23,9 @@ interface Store {
   setBundle: (b: ViewingBundle | null) => void;
   lastPay: PayResult | null;
   setLastPay: (p: PayResult | null) => void;
-  /** Recipient profile to scan/sweep as (shared between Send → Scan → Sweep). */
+  /** Whose inbox is open (a recipient profile). Shared between Send → Inbox. */
   who: string;
   setWho: (w: string) => void;
-  /** Payment handed from Scan to Sweep. */
-  sweepPick: PaymentRow | null;
-  setSweepPick: (p: PaymentRow | null) => void;
-  scanView: ScanView;
-  setScanView: (v: ScanView) => void;
 }
 
 const Ctx = createContext<Store | null>(null);
@@ -41,10 +35,12 @@ export const useStore = (): Store => {
   return s;
 };
 
-const TABS: TabId[] = ["send", "scan", "sweep", "auditor"];
+const TABS: TabId[] = ["send", "inbox", "public", "accountant"];
+// Old links (#scan, #sweep, #auditor) keep working.
+const ALIAS: Record<string, TabId> = { scan: "inbox", sweep: "inbox", auditor: "accountant" };
 const fromHash = (): TabId => {
-  const h = window.location.hash.replace("#", "") as TabId;
-  return TABS.includes(h) ? h : "send";
+  const h = window.location.hash.replace("#", "");
+  return ALIAS[h] ?? (TABS.includes(h as TabId) ? (h as TabId) : "send");
 };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -54,8 +50,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [bundle, setBundle] = useState<ViewingBundle | null>(null);
   const [lastPay, setLastPay] = useState<PayResult | null>(null);
   const [who, setWho] = useState("");
-  const [sweepPick, setSweepPick] = useState<PaymentRow | null>(null);
-  const [scanView, setScanView] = useState<ScanView>("recipient");
 
   const reload = useCallback(() => {
     api
@@ -79,6 +73,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const go = useCallback((t: TabId) => {
     window.location.hash = t;
     setTab(t);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const value = useMemo<Store>(
@@ -94,12 +89,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setLastPay,
       who,
       setWho,
-      sweepPick,
-      setSweepPick,
-      scanView,
-      setScanView,
     }),
-    [cfg, cfgError, reload, tab, go, bundle, lastPay, who, sweepPick, scanView],
+    [cfg, cfgError, reload, tab, go, bundle, lastPay, who],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

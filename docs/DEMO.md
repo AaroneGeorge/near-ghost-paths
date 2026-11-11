@@ -7,6 +7,7 @@ Everything here was run on 2026-11-09 (Linux, bun 1.4.3, docker 29); `make demo-
 |---|---|---|---|
 | `make demo-replay` | bun | 33 s | `demo OK: 17/17 checks passed in 33 s (replayed, offline)` |
 | `make demo` | bun, docker, network | 82 to 90 s | `demo OK: 17/17 checks passed in 82 s` |
+| `DEMO_NATIVE_CHAINS=1 make demo` | bun, `anvil` and `solana-test-validator` on PATH, network | about 90 s | the same; for Apple Silicon, where the agave docker image has no arm64 build (and crashes under x86 emulation) |
 | `KEEP=1 make demo` then `make web` | the same | 90 s + UI | UI at `http://127.0.0.1:8788`; undo with `make demo-clean` |
 | `make web-sim` | bun | 3 s | `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788`, then `open http://127.0.0.1:8788/?token=…` (open that URL) |
 | `make test-ts` | bun | 42 s | `82 pass`, `5 skip`, `0 fail` |
@@ -90,13 +91,13 @@ KEEP=1 make demo && make web        # open the printed http://127.0.0.1:8788/?to
 make web-sim                        # open the printed http://127.0.0.1:8788/?token=… URL; simulated chains, nothing else needed
 ```
 
-- **Send**: from `alice`, recipient `bob` (the page shows `registered`), asset ETH or SOL, amount, optional private note. See the one-time address, `Derived from v1.ghost-paths.testnet + gp1/...`, the payment tx, the NEAR announcement tx, and the announcement exactly as the chain sees it (`"recipient": none, ever`).
-- **Scan**: "As the recipient" (bob: payments found, `can sweep: yes`), "As an auditor" (drop a viewing bundle: read-only), "As a stranger" (random key: `0` payments, then the whole public log with no recipient column).
-- **Sweep**: pick a payment, destination pre-filled with a fresh address, route relayer / self-submit / 1Click dry quote. See the destination balance before, `+delta`, after, the NEAR tx, the MPC time, and `nothing names the recipient`.
-- **Auditor**: stats, table, filter and **CSV export** from a viewing bundle (cells starting with `= + - @` are neutralised).
+- **Send**: from `alice`, recipient `bob` (the field shows `Ready` when bob is set up), ETH or SOL, amount, optional note (encrypted for bob). The receipt shows bob's new one-time address and the path picture; **Technical details** has the payment tx, the NEAR note tx, the derivation (`v1.ghost-paths.testnet` + `gp1/...`) and everything NEAR recorded (no recipient field).
+- **Inbox** (was Scan + Sweep): bob's key finds his payments with the notes decrypted, and the total ready to withdraw. **Withdraw** opens in the row: destination pre-filled with an empty test address on local chains, "Privacy options" for the route (Private via the relayer, from my NEAR account, or a 1Click quote). See `+delta` arriving, then **Technical details** for the NEAR tx, the MPC time and the chain tx.
+- **What others see** (was "As a stranger"): a random key reads the whole public record and traces `0` payments; the record has no recipient column; the honest limits are listed below it.
+- **Accountant** (was Auditor + "As an auditor"): drop a viewing key file (or the demo shortcut), then stats, search, table and **Download CSV** (cells starting with `= + - @` are neutralised). It can never withdraw.
 
-Screenshots from a live run: `docs/img/ui-send.png`, `docs/img/ui-scan.png`. The Playwright smoke test (`make web-e2e`) drives the simulated server; against a kept live run it needs an empty state
-(`GHOST_E2E_URL=http://127.0.0.1:8788 make web-e2e` expects exactly one payment, so on a kept run it stops at the scan assertion after the Send step has already worked).
+Screenshots from a live run: `docs/img/ui-send.png`, `docs/img/ui-inbox.png`. The Playwright smoke test (`make web-e2e`) drives the simulated server; against a kept live run it needs an empty state
+(`GHOST_E2E_URL=http://127.0.0.1:8788 make web-e2e` expects exactly one payment, so on a kept run it stops at the inbox assertion after the Send step has already worked).
 
 ## Troubleshooting
 

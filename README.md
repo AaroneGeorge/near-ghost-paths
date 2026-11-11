@@ -12,8 +12,8 @@ Bitcoin, Ethereum or Solana key: the MPC network signs for every chain from the 
 
 The use case aimed at a normal company is **private payroll**: an employer pays contractors in ETH at stealth addresses and the accountant gets a viewing key.
 
-![Send tab: one-time address, derivation and the announcement as the chain sees it](docs/img/ui-send.png)
-![Scan tab: the recipient finds payments in the public log](docs/img/ui-scan.png)
+![Send: the payment lands at a brand-new address used only once](docs/img/ui-send.png)
+![Inbox: only the recipient's key finds the payment, and withdraws it from the same row](docs/img/ui-inbox.png)
 
 Related project by the same submitter: see [Related project](#related-project-by-the-same-submitter) (Tripwire).
 
@@ -74,8 +74,8 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
    ```bash
    make web-sim
    ```
-   See: `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788` and an `open http://127.0.0.1:8788/?token=…` line. Open that URL (the token authorises pay, sweep and scan for this session): tabs **Send**, **Scan**, **Sweep**, **Auditor**, and a banner saying the chains are simulated.
-   Send 0.01 ETH to `bob`; Scan as the recipient shows 1 payment; "As a stranger" shows 0; Sweep moves the balance. Stop with Ctrl-C.
+   See: `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788` and an `open http://127.0.0.1:8788/?token=…` line. Open that URL (the token authorises pay, sweep and scan for this session): four pages, **Send**, **Inbox**, **What others see** and **Accountant**, and a "Demo mode" strip saying the networks are simulated.
+   Send 0.01 ETH to `bob`; **Open bob's inbox** shows 1 payment; **Withdraw** moves the balance; **What others see** finds 0; **Accountant** opens a read-only view with a CSV download. Stop with Ctrl-C.
    (`make web-e2e` drives exactly this with Playwright; it needs a Chromium that Playwright can find.)
 
 ### Real run: NEAR testnet MPC plus local chains (about 90 seconds, plus docker start)

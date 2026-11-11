@@ -20,9 +20,11 @@ mkdirSync(shots, { recursive: true });
 /** Playwright wants the chromium build it was released with; fall back to any installed one. */
 function findChromium(): string | undefined {
   if (existsSync(chromium.executablePath())) return undefined;
-  const base = join(
-    process.env.PLAYWRIGHT_BROWSERS_PATH ?? join(homedir(), ".cache", "ms-playwright"),
-  );
+  const base =
+    process.env.PLAYWRIGHT_BROWSERS_PATH ??
+    (process.platform === "darwin"
+      ? join(homedir(), "Library", "Caches", "ms-playwright")
+      : join(homedir(), ".cache", "ms-playwright"));
   if (!existsSync(base)) return undefined;
   for (const d of readdirSync(base).sort().reverse()) {
     for (const sub of [
@@ -30,6 +32,8 @@ function findChromium(): string | undefined {
       "chrome-linux/chrome",
       "chrome-linux/headless_shell",
       "chrome-headless-shell-linux64/chrome-headless-shell",
+      "chrome-headless-shell-mac-arm64/chrome-headless-shell",
+      "chrome-headless-shell-mac-x64/chrome-headless-shell",
     ]) {
       const p = join(base, d, sub);
       if (d.startsWith("chromium") && existsSync(p)) return p;
@@ -100,40 +104,41 @@ async function main() {
     await page.goto(`${base}/?token=${token}`);
     await page
       .getByTestId("status")
-      .getByText(/live|simulated/)
+      .getByText(/NEAR|Demo mode/)
       .waitFor();
     await shot("01-send-empty");
 
     // ---- Send
     console.log("Send");
-    await page.getByTestId("registered").getByText("registered", { exact: true }).waitFor();
+    await page.getByTestId("registered").getByText("Ready", { exact: true }).waitFor();
     await page.getByTestId("amount").fill("0.01");
     await page.getByTestId("memo").fill("invoice #42");
     await page.getByTestId("send").click();
     await page.getByTestId("pay-result").waitFor({ timeout: 120_000 });
     const addr = await txt("onetime-address");
     check(/^0x[0-9a-fA-F]{40}$/.test(addr), `one-time EVM address shown (${addr.slice(0, 10)}…)`);
+    await page.getByTestId("pay-details").locator("summary").click();
     check(
-      (await txt("announcement")).includes("recipient"),
-      "announcement shown with 'no recipient'",
+      (await txt("announcement")).includes("no recipient"),
+      "technical details show the note has no recipient field",
     );
     await shot("02-send-result");
 
-    // ---- Scan as the recipient shows 1
-    console.log("Scan");
-    await page.getByTestId("to-scan").click();
+    // ---- Inbox (the recipient's scan) shows 1
+    console.log("Inbox");
+    await page.getByTestId("to-inbox").click();
     await page.getByTestId("scan-result").waitFor();
     await page.getByTestId("found").filter({ hasText: /^1$/ }).waitFor();
-    check((await txt("found")) === "1", "recipient scan finds exactly 1 payment");
+    check((await txt("found")) === "1", "recipient inbox finds exactly 1 payment");
     check(
       (await page.getByTestId("payment-row").first().textContent())?.includes("invoice #42"),
-      "memo decrypted in the table",
+      "note decrypted in the inbox",
     );
-    await shot("03-scan-recipient");
+    await shot("03-inbox");
 
-    // ---- Stranger finds nothing, public log has no recipient
-    await page.getByTestId("view-stranger").click();
-    await page.getByTestId("stranger-result").waitFor();
+    // ---- What others see: a stranger finds nothing, public log has no recipient
+    await page.getByTestId("tab-public").click();
+    await page.getByTestId("public-log").waitFor();
     check(
       (await page.getByTestId("stranger-result").getByTestId("found").textContent())?.trim() ===
         "0",
@@ -141,33 +146,26 @@ async function main() {
     );
     check(
       (await page.getByTestId("public-log").locator("tbody tr").count()) >= 1,
-      "public log lists the announcement",
+      "public log lists the note",
     );
-    await shot("04-scan-stranger");
+    await shot("04-public");
 
-    // ---- Auditor: upload a viewing bundle, read-only table, CSV
-    console.log("Auditor");
+    // ---- Accountant: upload a viewing key, read-only table, CSV
+    console.log("Accountant");
     const res = await fetch(`${base}/api/viewing-bundle?profile=bob`, {
       headers: { "x-ghost-token": token },
     });
     const bundleJson = JSON.stringify(((await res.json()) as { bundle: unknown }).bundle);
     const file = join(tmpdir(), `ghost-e2e-bundle-${process.pid}.json`);
     writeFileSync(file, bundleJson, { mode: 0o600 });
-    await page.getByTestId("view-auditor").click();
+    await page.getByTestId("tab-accountant").click();
     await page.getByTestId("bundle-file").setInputFiles(file);
-    await page
-      .getByTestId("auditor-scan-result")
-      .getByTestId("found")
-      .filter({ hasText: /^1$/ })
-      .waitFor();
-    check(true, "auditor (uploaded bundle) sees the same 1 payment");
+    await page.getByTestId("auditor-result").waitFor();
+    check((await txt("audit-count")) === "1", "accountant view (uploaded key) lists 1 payment");
     check(
       !(await page.content()).includes(JSON.parse(bundleJson).view_priv),
       "view_priv is never rendered",
     );
-    await page.getByTestId("tab-auditor").click();
-    await page.getByTestId("auditor-result").waitFor();
-    check((await txt("audit-count")) === "1", "auditor report lists 1 payment");
     const [dl] = await Promise.all([
       page.waitForEvent("download"),
       page.getByTestId("export-csv").click(),
@@ -176,33 +174,31 @@ async function main() {
     const csv = readFileSync(csvPath, "utf8");
     check(
       csv.includes("invoice #42") && csv.includes(addr),
-      "CSV export has the memo and the address",
+      "CSV export has the note and the address",
     );
-    await shot("05-auditor");
+    await shot("05-accountant");
 
-    // ---- Sweep
-    console.log("Sweep");
-    await page.getByTestId("tab-sweep").click();
-    await page.getByTestId("payment-option").first().waitFor();
+    // ---- Withdraw from the inbox
+    console.log("Withdraw");
+    await page.getByTestId("tab-inbox").click();
+    await page.getByTestId("withdraw").first().click();
     await page.waitForFunction(
       () =>
         (document.querySelector('[data-testid="dest"]') as HTMLInputElement | null)?.value.length,
     );
-    await shot("06-sweep-form");
+    await shot("06-withdraw-form");
     await page.getByTestId("sweep").click();
     await page.getByTestId("sweep-result").waitFor({ timeout: 180_000 });
     const before = await txt("bal-before");
     const delta = await txt("bal-delta");
     const after = await txt("bal-after");
-    check(/^0 ETH$/.test(before), `destination balance before: ${before}`);
+    check(before === "0", `destination balance before: ${before}`);
     check(/^\+0\.\d+ ETH$/.test(delta), `balance moved ${delta} (after: ${after})`);
-    await shot("07-sweep-result");
+    await shot("07-withdrawn");
 
-    // the stealth address is now empty: scan says swept
-    await page.getByTestId("tab-scan").click();
-    await page.getByTestId("view-recipient").click();
-    await page.getByTestId("payment-row").first().getByText("swept").waitFor();
-    check(true, "scan now marks the payment swept");
+    // the one-time address is now empty: the inbox says withdrawn
+    await page.getByTestId("payment-row").first().getByText("Withdrawn").waitFor();
+    check(true, "inbox now marks the payment withdrawn");
 
     check(
       errors.length === 0,

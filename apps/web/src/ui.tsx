@@ -1,6 +1,11 @@
-/** Small design-system pieces. Icons: lucide-react (Code Garage item frontend.design.icon-sets). */
+/**
+ * Small design-system pieces.
+ * From the Code Garage: icons lucide-react (frontend.design.icon-sets), toasts sonner
+ * (frontend.components.toasts-drawers-command-hotkeys), motion (frontend.animation.motion).
+ */
 import {
   Check,
+  ChevronRight,
   CircleAlert,
   CircleCheck,
   Copy,
@@ -9,73 +14,32 @@ import {
   LoaderCircle,
   TriangleAlert,
 } from "lucide-react";
-import {
-  type ReactNode,
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ReactNode, useState } from "react";
+import { toast } from "sonner";
 import { short } from "./lib.ts";
 
-// ---- toasts ----
-const ToastCtx = createContext<(msg: string) => void>(() => {});
-export const useToast = () => useContext(ToastCtx);
-export function ToastProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<{ id: number; msg: string }[]>([]);
-  const push = useCallback((msg: string) => {
-    const id = Date.now() + Math.random();
-    setItems((x) => [...x, { id, msg }]);
-    setTimeout(() => setItems((x) => x.filter((i) => i.id !== id)), 2200);
-  }, []);
-  return (
-    <ToastCtx.Provider value={push}>
-      {children}
-      <div className="toast-host" aria-live="polite">
-        {items.map((i) => (
-          <div key={i.id} className="toast">
-            {i.msg}
-          </div>
-        ))}
-      </div>
-    </ToastCtx.Provider>
-  );
-}
-
-// ---- layout ----
-export function Card({
+export function Panel({
   title,
-  icon,
+  sub,
   aside,
   children,
   className = "",
-  reveal,
+  ...rest
 }: {
   title?: ReactNode;
-  icon?: ReactNode;
+  sub?: ReactNode;
   aside?: ReactNode;
   children: ReactNode;
   className?: string;
-  reveal?: boolean;
-}) {
-  const ref = useRef<HTMLElement>(null);
-  // Results appear beside the form; make sure they are on screen when they do.
-  useEffect(() => {
-    if (!reveal) return;
-    const r = ref.current?.getBoundingClientRect();
-    if (r && (r.top < 0 || r.top > window.innerHeight * 0.6))
-      ref.current?.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [reveal]);
+} & React.HTMLAttributes<HTMLElement>) {
   return (
-    <section ref={ref} className={`card ${className}`}>
+    <section className={`panel ${className}`} {...rest}>
       {(title || aside) && (
-        <div className="card-head">
-          <h2>
-            {icon}
-            {title}
-          </h2>
+        <div className="panel-head">
+          <div>
+            {title && <h2>{title}</h2>}
+            {sub && <p>{sub}</p>}
+          </div>
           {aside}
         </div>
       )}
@@ -84,12 +48,28 @@ export function Card({
   );
 }
 
+export function PageHead({
+  title,
+  children,
+  aside,
+}: { title: ReactNode; children?: ReactNode; aside?: ReactNode }) {
+  return (
+    <header className={`page-head ${aside ? "split" : ""}`}>
+      <div className="stack" style={{ gap: 8 }}>
+        <h1>{title}</h1>
+        {children && <p>{children}</p>}
+      </div>
+      {aside}
+    </header>
+  );
+}
+
 export function Field({
   label,
   hint,
   children,
   htmlFor,
-}: { label: string; hint?: ReactNode; children: ReactNode; htmlFor?: string }) {
+}: { label: ReactNode; hint?: ReactNode; children: ReactNode; htmlFor?: string }) {
   return (
     <div className="field">
       <label htmlFor={htmlFor}>{label}</label>
@@ -105,13 +85,15 @@ export function Button({
   icon,
   children,
   small,
+  big,
   block,
   ...rest
 }: {
-  variant?: "primary" | "ghost";
+  variant?: "primary" | "dark" | "quiet";
   loading?: boolean;
   icon?: ReactNode;
   small?: boolean;
+  big?: boolean;
   block?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
@@ -119,80 +101,41 @@ export function Button({
       type="button"
       {...rest}
       disabled={rest.disabled || loading}
-      className={`btn ${variant ?? ""} ${small ? "small" : ""} ${block ? "block" : ""} ${rest.className ?? ""}`}
+      className={`btn ${variant ?? ""} ${small ? "small" : ""} ${big ? "big" : ""} ${block ? "block" : ""} ${rest.className ?? ""}`}
     >
-      {loading ? <LoaderCircle size={16} className="spin" /> : icon}
+      {loading ? <LoaderCircle size={17} className="spin" /> : icon}
       {children}
     </button>
   );
 }
 
-export function Segmented<T extends string>({
-  options,
-  value,
-  onChange,
-  label,
-  full,
-}: {
-  options: { value: T; label: ReactNode; testid?: string }[];
-  value: T;
-  onChange: (v: T) => void;
-  label: string;
-  full?: boolean;
-}) {
-  return (
-    <div className={`seg ${full ? "full" : ""}`} role="radiogroup" aria-label={label}>
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          // biome-ignore lint/a11y/useSemanticElements: custom radio buttons
-          role="radio"
-          aria-checked={value === o.value}
-          data-testid={o.testid}
-          onClick={() => onChange(o.value)}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function Chip({
+export function Badge({
   tone,
   children,
-  icon,
-  onClick,
+  dot,
   title,
+  ...rest
 }: {
-  tone?: "accent" | "good" | "warn" | "bad";
+  tone?: "good" | "warn" | "bad" | "mint";
   children: ReactNode;
-  icon?: ReactNode;
-  onClick?: () => void;
+  dot?: boolean;
   title?: string;
-}) {
-  const cls = `chip ${tone ?? ""} ${onClick ? "button" : ""}`;
-  return onClick ? (
-    <button type="button" className={cls} onClick={onClick} title={title}>
-      {icon}
-      {children}
-    </button>
-  ) : (
-    <span className={cls} title={title}>
-      {icon}
+} & React.HTMLAttributes<HTMLSpanElement>) {
+  return (
+    <span className={`badge ${tone ?? ""}`} title={title} {...rest}>
+      {dot && <span className="dot" />}
       {children}
     </span>
   );
 }
 
-export function Callout({
+export function Note({
   tone,
   title,
   children,
   icon,
 }: {
-  tone?: "good" | "warn" | "bad" | "accent";
+  tone?: "good" | "warn" | "bad";
   title?: ReactNode;
   children?: ReactNode;
   icon?: ReactNode;
@@ -206,7 +149,7 @@ export function Callout({
           ? TriangleAlert
           : Info;
   return (
-    <div className={`callout ${tone ?? ""}`} role={tone === "bad" ? "alert" : undefined}>
+    <div className={`note ${tone ?? ""}`} role={tone === "bad" ? "alert" : undefined}>
       {icon ?? <Ico size={18} />}
       <div>
         {title && <b>{title} </b>}
@@ -218,19 +161,23 @@ export function Callout({
 
 export function CopyText({
   value,
-  text,
   head = 10,
   tail = 6,
   full,
-}: { value: string; text?: string; head?: number; tail?: number; full?: boolean }) {
+  ...rest
+}: {
+  value: string;
+  head?: number;
+  tail?: number;
+  full?: boolean;
+} & React.HTMLAttributes<HTMLButtonElement>) {
   const [done, setDone] = useState(false);
-  const toast = useToast();
-  const label = text ?? (full ? value : short(value, head, tail));
   return (
     <button
       type="button"
       className="copy"
       title={`${value}\n(click to copy)`}
+      {...rest}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(value);
@@ -238,22 +185,22 @@ export function CopyText({
           /* clipboard blocked: still show feedback */
         }
         setDone(true);
-        toast("Copied to clipboard");
+        toast.success("Copied");
         setTimeout(() => setDone(false), 1200);
       }}
     >
-      <span>{label}</span>
-      {done ? <Check size={13} /> : <Copy size={13} />}
+      <span>{full ? value : short(value, head, tail)}</span>
+      {done ? <Check size={14} /> : <Copy size={14} />}
     </button>
   );
 }
 
-/** Explorer link when a URL exists, otherwise the plain value (local chains / simulated mode). */
+/** Explorer link when a URL exists, otherwise the plain value (local chains / demo mode). */
 export function Explorer({ href, label, title }: { href?: string; label: string; title?: string }) {
   return href ? (
     <a className="ext" href={href} target="_blank" rel="noreferrer noopener" title={title ?? href}>
       {label}
-      <ExternalLink size={12} />
+      <ExternalLink size={13} />
     </a>
   ) : (
     <span className="mono" title={title}>
@@ -262,29 +209,30 @@ export function Explorer({ href, label, title }: { href?: string; label: string;
   );
 }
 
-export type StepState = "todo" | "active" | "done" | "failed";
-export function Steps({
+export type StepState = "todo" | "active" | "done";
+export function Progress({
   steps,
-}: { steps: { title: ReactNode; state: StepState; body?: ReactNode }[] }) {
+  ...rest
+}: {
+  steps: { title: ReactNode; state: StepState; body?: ReactNode }[];
+} & React.HTMLAttributes<HTMLOListElement>) {
   return (
-    <ol className="steps">
+    <ol className="progress" {...rest}>
       {steps.map((s, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: static ordered list
         <li key={i} className={s.state}>
-          <span className="step-ico">
+          <span className="ico">
             {s.state === "done" ? (
-              <Check size={15} />
+              <Check size={15} strokeWidth={2.6} />
             ) : s.state === "active" ? (
               <LoaderCircle size={15} className="spin" />
-            ) : s.state === "failed" ? (
-              "!"
             ) : (
               i + 1
             )}
           </span>
           <div>
-            <div className="step-title">{s.title}</div>
-            {s.body && s.state !== "todo" && <div className="step-body">{s.body}</div>}
+            <div className="t">{s.title}</div>
+            {s.body && s.state !== "todo" && <div className="b">{s.body}</div>}
           </div>
         </li>
       ))}
@@ -292,15 +240,21 @@ export function Steps({
   );
 }
 
-export function LogBox({ lines }: { lines: string[] }) {
-  if (!lines.length) return null;
+/** Collapsed "technical details" area: the proof for people who want it, out of everyone else's way. */
+export function More({
+  label,
+  children,
+  open,
+  ...rest
+}: { label: ReactNode; children: ReactNode; open?: boolean } & React.HTMLAttributes<HTMLElement>) {
   return (
-    <div className="log" data-testid="log">
-      {lines.map((l, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: append-only log
-        <div key={i}>{l}</div>
-      ))}
-    </div>
+    <details className="more" open={open} {...rest}>
+      <summary>
+        <ChevronRight size={16} />
+        {label}
+      </summary>
+      <div className="in">{children}</div>
+    </details>
   );
 }
 
@@ -311,9 +265,9 @@ export function Empty({
 }: { icon: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      {icon}
+      <div className="ring">{icon}</div>
       <b>{title}</b>
-      {children && <div>{children}</div>}
+      {children && <p>{children}</p>}
     </div>
   );
 }
@@ -326,4 +280,8 @@ export function Stat({ label, value, sub }: { label: string; value: ReactNode; s
       {sub && <div className="s">{sub}</div>}
     </div>
   );
+}
+
+export function Avatar({ name, lg }: { name: string; lg?: boolean }) {
+  return <span className={`avatar ${lg ? "lg" : ""}`}>{name.slice(0, 1)}</span>;
 }

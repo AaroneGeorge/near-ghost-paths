@@ -2,7 +2,7 @@
 
 ## Status
 
-Done. Four tabs (Send, Scan, Sweep, Auditor) in a dark, privacy-themed Vite + React + TS app, backed by `ghost serve`.
+Done. Four pages (Send, Inbox, What others see, Accountant) in a light, plain-language Vite + React + TS app, backed by `ghost serve` (redesigned 2026-11-10; the first version had Send, Scan, Sweep and Auditor tabs).
 `bun run build` (typecheck, Vite build, secret scan of `dist/`) passes; the Playwright smoke test passes against the simulated backend, and a read-only check against W3's kept demo state (`.secrets/demo/local-*/home`, real testnet contract) renders the live data correctly (bob's 2 payments, 7 announcements, "rpc down" when anvil is off).
 
 ## Run it
@@ -15,12 +15,14 @@ Done. Four tabs (Send, Scan, Sweep, Auditor) in a dark, privacy-themed Vite + Re
 | `make web-e2e` or `cd apps/web && bun run e2e` | Playwright smoke test. `GHOST_E2E_URL=http://127.0.0.1:8788/?token=<printed token>` drives an already running server (after `make demo KEEP=1` + `make web`) instead of starting its own. Screenshots land in `apps/web/e2e/out/`. |
 | `cd apps/web && bun test`, `cd packages/cli && bun test test/serve.test.ts` | Unit tests (CSV escaping, balance delta, bundle parsing; the HTTP API incl. the security refusals) |
 
-## What each tab does
+## What each page does (redesign, 2026-11-10)
 
-- **Send**: payer, recipient (chips for known recipients plus a live "registered / not registered" registry lookup), asset ETH/BTC/SOL (from `GHOST_CHAINS`, default `evm:31337,sol:local`, plus `btc:regtest` in dev mode), amount, encrypted note, optional "hide the view tag". Streams progress, then shows the one-time address (copy + explorer link), `predecessor + path`, payment tx, NEAR announcement tx, and the announcement as the chain sees it (no recipient field).
-- **Scan**: three views over the same public log. Recipient (profile select, spend+view keys, auto-scan, "Sweep" hands the payment to the Sweep tab); auditor (upload or drop a viewing bundle, held in memory only, "cannot sweep"); stranger (random key, 0 payments, then the whole public log with a "recipient: not on chain" column and the honest-limits callout).
-- **Sweep**: payment picker, destination (pre-filled with a fresh throwaway address; warns about consolidation), route relayer / self-submit (warning: links to your NEAR account) / 1Click (a confidential dry quote; mainnet-only, labelled as such). Streams the steps, then shows destination balance before, `+delta`, after; NEAR tx, MPC time, chain tx and the "nothing names the recipient" callout.
-- **Auditor**: read-only report from a viewing bundle: stats (payments, unspent totals, swept, can sweep = no), filter, table, **CSV export**. Cells starting with `= + - @` are prefixed with `'` (the memo is attacker-controlled, so this blocks CSV formula injection).
+The UI was redesigned for people who are not cryptographers: four tabs and three scan views became four pages, the words follow what a person does (send, inbox, withdraw), and the protocol details sit behind "Technical details". Old links (`#scan`, `#sweep`, `#auditor`) still work.
+
+- **Send**: a path picture (you, a new address used once, them), recipient with a live `Ready` / `Not set up` registry check, currency tiles (only the chains `ghost serve` offers), a big amount, an encrypted note, and "Extra privacy" (no view tag) under More options. Streams three plain-language steps, then a receipt with the one-time address and "Open bob's inbox"; **Technical details** shows the txs, the derivation and the announcement (no recipient field).
+- **Inbox** (Scan as recipient + Sweep): total ready to withdraw, the payment list with decrypted notes, and **Withdraw** inline per payment: destination (an empty test address on local chains only), privacy options (relayer = "Private", self-submit = "From my NEAR account" with a warning, 1Click = quote only), three progress steps, then `+delta` arriving and technical details.
+- **What others see** (Scan as stranger): a random key traces 0 payments; the public record (no recipient column); what is still visible (honest limits).
+- **Accountant** (Scan as auditor + Auditor): load a viewing key (file or demo shortcut, memory only), stats, search, table, **Download CSV** (formula-injection safe). It can never withdraw.
 
 ## Architecture and API (what W3 / W5 need to know)
 
@@ -53,6 +55,12 @@ Done. Four tabs (Send, Scan, Sweep, Auditor) in a dark, privacy-themed Vite + Re
 Searched three ways (UI kits and dashboards, icons and Tailwind, Playwright). Used:
 - `frontend.design.icon-sets` -> **lucide** (`lucide-react`, ISC) for all icons.
 - `frontend.testing.playwright-for-ui` -> **Playwright** (Apache-2.0) for the smoke test.
+
+Redesign (2026-11-10), searched again (design systems, wallet UIs, toasts, motion, design skills). Used:
+- `ai.skills.frontend-and-testing` -> the **frontend-design** skill (anthropics/skills, Apache-2.0, trusted), installed with `garage skill add` into `.claude/skills/frontend-design`, for the design plan (palette, type, layout, copy).
+- `frontend.animation.motion` -> **motion** (MIT), imported from `motion/react`, `MotionConfig reducedMotion="user"`: the nav pill, the page swaps, the receipt and the path drawing.
+- `frontend.components.toasts-drawers-command-hotkeys` -> **sonner** (MIT) for toasts.
+- Fonts bundled from npm (Fontsource, OFL): Bricolage Grotesque (headings), Figtree (text), JetBrains Mono (addresses only). No network fetch.
 
 Not used, on purpose: the shadcn/headless/Tailwind kits and dashboard templates (`frontend.templates.shadcn-dashboards`, `frontend.components.headless-react`, `frontend.styling.tailwind`). They are Next.js/Tailwind scaffolding that would add a design system and several dependencies to a four-tab app; the components here (Card, Segmented, Steps, Chip, Callout, CopyText, tables) are ~250 lines of plain CSS variables and React, written to fit the privacy theme. Fonts are the system stack (no network fetch, works offline).
 
