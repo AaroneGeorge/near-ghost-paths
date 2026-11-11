@@ -255,7 +255,15 @@ async function startRelayer(keyFile: string): Promise<void> {
   delete (env as Record<string, string | undefined>).GHOST_TAPE_PASSTHROUGH;
   const { openSync } = await import("node:fs");
   const fd = openSync(logFile, "w");
-  relayerProc = spawn("bun", [RELAYER], { cwd: ROOT, env, stdio: ["ignore", fd, fd] });
+  // KEEP=1 leaves the relayer serving after the demo exits (for `make web`); its own session means
+  // closing the terminal that ran the demo (SIGHUP to that session) does not take it down.
+  const keepAlive = KEEP && MODE !== "replay";
+  relayerProc = spawn("bun", [RELAYER], {
+    cwd: ROOT,
+    env,
+    stdio: ["ignore", fd, fd],
+    detached: keepAlive,
+  });
   await waitFor(
     "relayer",
     async () => {

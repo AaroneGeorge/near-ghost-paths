@@ -18,6 +18,7 @@ import type { ChainAdapter, ChainTag, MpcSignature, NearNetwork } from "../types
 import { type ChainInfo, chainInfo } from "./config.ts";
 import { ecdsaParts, hexToBytesStrict } from "./sig.ts";
 
+/** Pre-2026 intrinsic cost of a plain transfer; the floor for every estimate. */
 const TRANSFER_GAS = 21_000n;
 
 export interface EvmSweepTx {
@@ -64,7 +65,52 @@ export class EvmAdapter implements ChainAdapter {
     return { balance, decimals: 18 };
   }
 
-  /** Fee parameters for one 21k-gas transfer. */
+  /**
+   * Gas for a plain value transfer `from` → `to`. Not a constant any more: since the 2026
+   * state-growth repricing (live on Sepolia), sending to an address that does not exist yet costs
+   * ~207k gas while an existing one costs ~12k. A one-time address is always new, so a hard-coded
+   * 21000 runs out of gas. Asks the node, never goes below 21000 (older chains).
+   */
+  async transferGas(from: string, to: string, value: bigint, exact = false): Promise<bigint> {
+    // Local anvil keeps the old 21000 (and the recorded replay fixtures carry no estimate call).
+    if (this.info.local) return TRANSFER_GAS;
+    const msg = {
+      account: from as `0x${string}`,
+      to: to as `0x${string}`,
+      value: value > 0n ? value : 1n,
+    };
+    let est: bigint;
+    try {
+      est = await this.client.estimateGas(msg);
+    } catch {
+      return TRANSFER_GAS;
+    }
+    if (est <= TRANSFER_GAS) return TRANSFER_GAS;
+    if (!exact) return est;
+    // geth's estimate may overshoot by up to 1.5%, and a legacy tx refunds the unused gas to the
+    // sender: a full sweep would leave dust at the one-time address. Narrow it to the exact
+    // minimum with eth_call (~12 calls). Any RPC error counts as "too low", so errors only ever
+    // push the result up, toward the (always sufficient) estimate.
+    const fits = async (gas: bigint) => {
+      try {
+        await this.client.call({ ...msg, gas });
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    let lo = est - est / 50n;
+    let hi = est;
+    if (lo <= TRANSFER_GAS || (await fits(lo))) return est;
+    while (hi - lo > 1n) {
+      const mid = (lo + hi) / 2n;
+      if (await fits(mid)) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  }
+
+  /** EIP-1559 fee parameters for a payment. */
   async fees(): Promise<{ maxFeePerGas: bigint; maxPriorityFeePerGas: bigint }> {
     const block = await this.client.getBlock({ blockTag: "latest" });
     const base = block.baseFeePerGas ?? (await this.client.getGasPrice());
@@ -80,16 +126,18 @@ export class EvmAdapter implements ChainAdapter {
 
   /**
    * Unsigned transfer from the stealth address. Uses a legacy (EIP-155) gas price so the fee is
-   * exactly 21000 × gasPrice and `amount` undefined sweeps the balance to exactly zero (an
-   * EIP-1559 tx would leave the unused max-fee as dust at A).
+   * exactly gas × gasPrice and `amount` undefined sweeps the balance to exactly zero (an
+   * EIP-1559 tx would leave the unused max-fee as dust at A). The gas is the node's estimate for
+   * this exact transfer (see transferGas), so a fresh destination is paid for.
    */
   async prepareSweep(from: string, _publicKey: string, to: string, amount?: bigint) {
     const fromAddr = from as `0x${string}`;
-    const [chainId, nonce, gasPrice0, balance] = await Promise.all([
+    const [chainId, nonce, gasPrice0, balance, gas] = await Promise.all([
       this.client.getChainId(),
       this.client.getTransactionCount({ address: fromAddr, blockTag: "pending" }),
       this.client.getGasPrice(),
       this.client.getBalance({ address: fromAddr }),
+      this.transferGas(from, to, 1n, amount === undefined),
     ]);
     // REVIEW L1: the RPC must not choose the chain. The derived key (hence the address) is the
     // same on every EVM chain, so a tx signed for a lying RPC's chainId is valid elsewhere.
@@ -97,7 +145,7 @@ export class EvmAdapter implements ChainAdapter {
       throw new Error(`${this.tag}: RPC reports chainId ${chainId}, expected ${this.info.chainId}`);
     }
     const gasPrice = gasPrice0 + gasPrice0 / 5n + 1n; // +20% headroom for the next block's base fee
-    const fee = TRANSFER_GAS * gasPrice;
+    const fee = gas * gasPrice;
     const value = amount ?? balance - fee;
     if (value <= 0n)
       throw new Error(`${this.tag}: balance ${balance} wei does not cover the fee (${fee} wei)`);
@@ -109,7 +157,7 @@ export class EvmAdapter implements ChainAdapter {
       nonce,
       to: to as `0x${string}`,
       value,
-      gas: TRANSFER_GAS,
+      gas,
       gasPrice,
     };
     const hash = keccak256(serializeTransaction(tx));
