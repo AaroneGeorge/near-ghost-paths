@@ -138,3 +138,56 @@ export function parseBundle(text: string): import("./types.ts").ViewingBundle {
   }
   return b as unknown as import("./types.ts").ViewingBundle;
 }
+
+/** Plain names for people who do not think in chain tags. */
+export const FAMILY_NAME = { evm: "Ethereum", btc: "Bitcoin", sol: "Solana" } as const;
+
+/** "Ethereum · local test network" style label for a chain tag. */
+export function networkLabel(cfg: Config, tag: string): string {
+  const c = chainOf(cfg, tag);
+  if (!c) return tag;
+  return c.local ? `${FAMILY_NAME[c.family]} (local test network)` : c.name;
+}
+
+/** Profile name ("bob") for a NEAR account, when this server knows it. */
+export function nameOf(cfg: Config, account: string): string {
+  return cfg.profiles.find((p) => p.account === account || p.name === account)?.name ?? account;
+}
+
+export const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+
+/** Decimal string → bigint scaled by 10^dec (display aggregation only). */
+export function toUnits(s: string, dec = 18): bigint {
+  const [w = "0", f = ""] = s.split(".");
+  return BigInt(w || "0") * 10n ** BigInt(dec) + BigInt(f.padEnd(dec, "0").slice(0, dec) || "0");
+}
+export function fromUnits(v: bigint, dec = 18): string {
+  const base = 10n ** BigInt(dec);
+  const frac = (v % base).toString().padStart(dec, "0").replace(/0+$/, "");
+  return `${v / base}${frac ? `.${frac}` : ""}`;
+}
+
+/** Sum of available (unspent) balances per symbol, in display order. */
+export function availableTotals(rows: PaymentRow[]): { symbol: string; amount: string }[] {
+  const totals = new Map<string, bigint>();
+  for (const p of rows) {
+    if (statusOf(p) !== "unspent") continue;
+    totals.set(p.symbol, (totals.get(p.symbol) ?? 0n) + toUnits(p.balance));
+  }
+  return [...totals].map(([symbol, v]) => ({ symbol, amount: fromUnits(v) }));
+}
+
+/** "Ethereum or Solana" / "Ethereum, Solana or Bitcoin": the chains this server actually offers. */
+export function offeredNames(cfg: Config, join = "or"): string {
+  const names = [...new Set(cfg.chains.map((c) => FAMILY_NAME[c.family]))];
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} ${join} ${names[names.length - 1]}`;
+}
+
+/** Display amount: at most `max` decimals (rounded down), trailing zeros dropped. Keeps a sign. */
+export function fmtAmount(s: string, max = 6): string {
+  const m = /^([+-]?)(\d*)(?:\.(\d*))?$/.exec(s.trim());
+  if (!m) return s;
+  const frac = (m[3] ?? "").slice(0, max).replace(/0+$/, "");
+  return `${m[1]}${m[2] || "0"}${frac ? `.${frac}` : ""}`;
+}

@@ -1,117 +1,131 @@
-import {
-  ArrowRightLeft,
-  ExternalLink,
-  Ghost,
-  ScanSearch,
-  Send,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
+import { Eye, FileSpreadsheet, Ghost, Inbox, Send } from "lucide-react";
+import { MotionConfig, motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { Toaster } from "sonner";
+import { AccountantPage } from "./pages/Accountant.tsx";
+import { InboxPage } from "./pages/Inbox.tsx";
+import { PublicPage } from "./pages/Public.tsx";
+import { SendPage } from "./pages/Send.tsx";
 import { StoreProvider, type TabId, useStore } from "./store.tsx";
-import { AuditorTab } from "./tabs/Auditor.tsx";
-import { ScanTab } from "./tabs/Scan.tsx";
-import { SendTab } from "./tabs/Send.tsx";
-import { SweepTab } from "./tabs/Sweep.tsx";
-import { Button, Callout, Chip, ToastProvider } from "./ui.tsx";
+import { Button, Note } from "./ui.tsx";
 
-const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "send", label: "Send", icon: <Send size={16} /> },
-  { id: "scan", label: "Scan", icon: <ScanSearch size={16} /> },
-  { id: "sweep", label: "Sweep", icon: <ArrowRightLeft size={16} /> },
-  { id: "auditor", label: "Auditor", icon: <ShieldCheck size={16} /> },
+const TABS: { id: TabId; label: string; long?: string; icon: React.ReactNode }[] = [
+  { id: "send", label: "Send", icon: <Send size={15} /> },
+  { id: "inbox", label: "Inbox", icon: <Inbox size={15} /> },
+  { id: "public", label: "Public view", long: "What others see", icon: <Eye size={15} /> },
+  { id: "accountant", label: "Accountant", icon: <FileSpreadsheet size={15} /> },
 ];
 
 function Shell() {
   const { cfg, cfgError, reload, tab, go } = useStore();
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 4);
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
+
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-mark">
-            <Ghost size={22} />
-          </div>
-          <div>
-            <h1>Ghost Paths</h1>
-            <p>Stealth addresses on Bitcoin, Ethereum and Solana, from one NEAR account</p>
-          </div>
-        </div>
-        <div className="status" data-testid="status">
-          {cfg ? (
-            <>
-              <Chip tone={cfg.simulated ? "warn" : "good"} icon={<span className="dot" />}>
-                {cfg.simulated ? "simulated" : "live"}
-              </Chip>
-              <Chip>NEAR {cfg.network}</Chip>
-              <a
-                className="chip"
-                href={cfg.simulated ? undefined : cfg.links.contract}
-                target="_blank"
-                rel="noreferrer noopener"
-                title="Ghost Paths contract"
+    <div className="shell">
+      <header className={`top ${scrolled ? "scrolled" : ""}`}>
+        <div className="top-in">
+          <button type="button" className="brand" onClick={() => go("send")}>
+            <Ghost size={24} strokeWidth={2.2} />
+            Ghost Paths
+          </button>
+          <nav className="nav" role="tablist" aria-label="Sections">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={tab === t.id}
+                onClick={() => go(t.id)}
+                data-testid={`tab-${t.id}`}
               >
-                {cfg.contract}
-                {!cfg.simulated && <ExternalLink size={12} />}
-              </a>
-            </>
-          ) : cfgError ? (
-            <Chip tone="bad" icon={<span className="dot" />}>
-              API offline
-            </Chip>
-          ) : (
-            <Chip>
-              <span className="pulse">connecting…</span>
-            </Chip>
-          )}
+                {tab === t.id && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="pill"
+                    transition={{ type: "spring", bounce: 0.18, duration: 0.45 }}
+                  />
+                )}
+                <span>
+                  {t.icon}
+                  {t.long ? (
+                    <>
+                      <span className="lbl-long">{t.long}</span>
+                    </>
+                  ) : (
+                    t.label
+                  )}
+                </span>
+              </button>
+            ))}
+          </nav>
+          <div
+            className={`net ${cfgError ? "off" : cfg?.simulated ? "sim" : ""}`}
+            data-testid="status"
+          >
+            <span className="dot" />
+            {cfg ? (
+              cfg.simulated ? (
+                "Demo mode"
+              ) : (
+                `NEAR ${cfg.network}`
+              )
+            ) : cfgError ? (
+              "Offline"
+            ) : (
+              <span className="pulse">Connecting</span>
+            )}
+          </div>
         </div>
       </header>
 
       {cfg?.simulated && (
-        <div className="banner">
-          <TriangleAlert size={17} style={{ flex: "none", marginTop: 2 }} />
-          <span>
-            <b>Dev mode, no network.</b> The cryptography is real (stealth keys, one-time addresses,
-            scanning, sweep authorisations). Chains, NEAR transactions and the MPC signature are
-            simulated. Run <code>make demo</code> and <code>ghost serve</code> for the real thing.
-          </span>
+        <div className="demo-strip">
+          <div>
+            <b>Demo mode.</b> The privacy math is real; the networks are simulated, so no real money
+            moves.
+          </div>
         </div>
       )}
 
-      <nav className="nav" role="tablist" aria-label="Sections">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => go(t.id)}
-            data-testid={`tab-${t.id}`}
-          >
-            {t.icon}
-            {t.label}
-          </button>
-        ))}
-      </nav>
-
       <main>
         {cfgError && (
-          <div className="stack">
-            <Callout tone="bad" title="Cannot reach ghost serve.">
+          <div className="page">
+            <Note tone="bad" title="Can't reach the Ghost Paths server.">
               {cfgError}
-            </Callout>
+            </Note>
             <div>
-              <Button onClick={reload}>Retry</Button>
+              <Button variant="dark" onClick={reload}>
+                Try again
+              </Button>
             </div>
           </div>
         )}
-        {cfg && tab === "send" && <SendTab />}
-        {cfg && tab === "scan" && <ScanTab />}
-        {cfg && tab === "sweep" && <SweepTab />}
-        {cfg && tab === "auditor" && <AuditorTab />}
+        {cfg && tab === "send" && <SendPage />}
+        {cfg && tab === "inbox" && <InboxPage />}
+        {cfg && tab === "public" && <PublicPage />}
+        {cfg && tab === "accountant" && <AccountantPage />}
       </main>
 
       <footer className="foot">
-        <span>Keys never leave the server: this page only receives public data.</span>
-        <span>Ghost Paths · NEAR Chain Signatures · MIT</span>
+        <span>
+          Your keys stay with the Ghost Paths server. This page only ever sees public data.
+        </span>
+        <span>
+          Built on NEAR Chain Signatures.
+          {cfg && !cfg.simulated && (
+            <>
+              {" "}
+              <a href={cfg.links.contract} target="_blank" rel="noreferrer noopener">
+                View the contract
+              </a>
+            </>
+          )}
+        </span>
       </footer>
     </div>
   );
@@ -119,10 +133,11 @@ function Shell() {
 
 export default function App() {
   return (
-    <ToastProvider>
+    <MotionConfig reducedMotion="user">
       <StoreProvider>
         <Shell />
       </StoreProvider>
-    </ToastProvider>
+      <Toaster position="bottom-center" toastOptions={{ style: { fontFamily: "var(--sans)" } }} />
+    </MotionConfig>
   );
 }

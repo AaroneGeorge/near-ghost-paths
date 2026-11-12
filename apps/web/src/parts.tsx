@@ -1,108 +1,48 @@
-import { ArrowRight, Bitcoin, Eye, FileJson, Hexagon, KeyRound, Sun, Upload } from "lucide-react";
+import { Bitcoin, FileKey2, Hexagon, Sun, Upload } from "lucide-react";
 import { type ReactNode, useRef, useState } from "react";
 import { api } from "./api.ts";
-import { chainAddrLink, chainOf, parseBundle, statusOf } from "./lib.ts";
+import { chainOf, parseBundle, statusOf } from "./lib.ts";
 import { useStore } from "./store.tsx";
 import type { Config, Family, PaymentRow, ViewingBundle } from "./types.ts";
-import { Button, Callout, Chip, CopyText, Empty, Explorer } from "./ui.tsx";
+import { Badge, Note } from "./ui.tsx";
 
-export const FAMILY_ICON: Record<Family, ReactNode> = {
-  evm: <Hexagon size={13} />,
-  btc: <Bitcoin size={13} />,
-  sol: <Sun size={13} />,
+const FAMILY_ICON: Record<Family, (size: number) => ReactNode> = {
+  evm: (s) => <Hexagon size={s} />,
+  btc: (s) => <Bitcoin size={s} />,
+  sol: (s) => <Sun size={s} />,
 };
 
-export function ChainChip({ cfg, tag }: { cfg: Config; tag: string }) {
-  const c = chainOf(cfg, tag);
-  return (
-    <Chip icon={c ? FAMILY_ICON[c.family] : undefined} title={c?.name ?? tag}>
-      {tag}
-    </Chip>
-  );
+export function Coin({ cfg, tag, size = 19 }: { cfg: Config; tag: string; size?: number }) {
+  const f = chainOf(cfg, tag)?.family ?? "evm";
+  return <span className={`coin ${f}`}>{FAMILY_ICON[f](size)}</span>;
 }
 
-export function StatusChip({ p }: { p: PaymentRow }) {
+export function FamilyIcon({ family, size = 18 }: { family: Family; size?: number }) {
+  return <>{FAMILY_ICON[family](size)}</>;
+}
+
+/** Payment state in words a person uses. */
+export function StatusBadge({ p }: { p: PaymentRow }) {
   const s = statusOf(p);
   if (s === "unspent")
     return (
-      <Chip tone="good" icon={<span className="dot" />}>
-        unspent
-      </Chip>
+      <Badge tone="good" dot data-testid="status">
+        Available
+      </Badge>
     );
-  if (s === "swept") return <Chip tone="accent">swept</Chip>;
+  if (s === "swept") return <Badge data-testid="status">Withdrawn</Badge>;
   if (s === "unknown")
     return (
-      <Chip tone="warn" title={p.balance_error}>
-        rpc down
-      </Chip>
+      <Badge tone="warn" title={p.balance_error} data-testid="status">
+        Can't check balance
+      </Badge>
     );
-  return <Chip>unfunded</Chip>;
+  return <Badge data-testid="status">Empty</Badge>;
 }
 
-export function PaymentsTable({
-  rows,
-  cfg,
-  action,
-}: { rows: PaymentRow[]; cfg: Config; action?: (p: PaymentRow) => ReactNode }) {
-  return (
-    <div className="tablewrap">
-      <table data-testid="payments">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Chain</th>
-            <th>One-time address</th>
-            <th className="num">Amount</th>
-            <th>Memo</th>
-            <th>Status</th>
-            {action && <th />}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((p) => (
-            <tr key={p.idx} data-testid="payment-row">
-              <td className="mono">{p.idx}</td>
-              <td>
-                <ChainChip cfg={cfg} tag={p.chain} />
-              </td>
-              <td>
-                <div className="row" style={{ gap: 8 }}>
-                  <CopyText value={p.address} head={10} tail={6} />
-                  {chainAddrLink(cfg, p.chain, p.address) && (
-                    <Explorer href={chainAddrLink(cfg, p.chain, p.address)} label="view" />
-                  )}
-                </div>
-              </td>
-              <td className="num amount">
-                {p.balance_error ? "?" : p.balance}{" "}
-                <span style={{ color: "var(--muted)" }}>{p.symbol}</span>
-              </td>
-              <td style={{ maxWidth: 220, overflowWrap: "anywhere" }}>
-                {p.memo?.note ?? <span style={{ color: "var(--faint)" }}>none</span>}
-              </td>
-              <td>
-                <StatusChip p={p} />
-              </td>
-              {action && <td className="num">{action(p)}</td>}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function NoPayments({ children }: { children?: ReactNode }) {
-  return (
-    <Empty icon={<KeyRound size={28} />} title="0 payments found">
-      {children}
-    </Empty>
-  );
-}
-
-/** Drag-and-drop / file picker for an auditor's viewing bundle, plus the demo shortcut that asks the server for one. */
-export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => void }) {
-  const { cfg, setBundle, bundle } = useStore();
+/** Drop a viewing key file, or (demo) ask the local server for a profile's. */
+export function BundleLoader() {
+  const { cfg, setBundle } = useStore();
   const [err, setErr] = useState<string | null>(null);
   const [over, setOver] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -110,12 +50,11 @@ export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => vo
   const accept = (b: ViewingBundle) => {
     setErr(null);
     setBundle(b);
-    onLoaded?.(b);
   };
   const readFile = async (f: File | undefined) => {
     if (!f) return;
     try {
-      if (f.size > 64 * 1024) throw new Error("File too large for a viewing bundle.");
+      if (f.size > 64 * 1024) throw new Error("That file is too large to be a viewing key.");
       accept(parseBundle(await f.text()));
     } catch (e) {
       setErr((e as Error).message);
@@ -124,7 +63,7 @@ export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => vo
   const recipients = cfg?.profiles.filter((p) => p.recipient) ?? [];
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div className="stack" style={{ gap: 12 }}>
       <button
         type="button"
         className={`drop ${over ? "over" : ""}`}
@@ -140,13 +79,10 @@ export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => vo
           void readFile(e.dataTransfer.files[0]);
         }}
       >
-        <Upload size={26} />
-        <b style={{ color: "var(--text)" }}>
-          {bundle ? "Replace viewing bundle" : "Drop a viewing bundle here"}
-        </b>
+        <Upload size={24} />
+        <b>Drop a viewing key file</b>
         <span>
-          JSON from <code>ghost export-viewing-key</code>. Read in your browser, held in memory
-          only.
+          or click to choose one. It stays in this browser tab and is forgotten when you close it.
         </span>
         <input
           ref={input}
@@ -158,11 +94,14 @@ export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => vo
         />
       </button>
       {recipients.length > 0 && (
-        <div className="row">
-          <span className="hint">Demo shortcut: ask the local server for</span>
+        <div className="picks">
+          <span className="hint">Demo: use the viewing key of</span>
           {recipients.map((p) => (
-            <Chip
+            <button
+              type="button"
               key={p.name}
+              className="pick-chip"
+              data-testid={`bundle-${p.name}`}
               onClick={async () => {
                 try {
                   accept((await api.viewingBundle(p.name)).bundle);
@@ -170,41 +109,16 @@ export function BundleLoader({ onLoaded }: { onLoaded?: (b: ViewingBundle) => vo
                   setErr((e as Error).message);
                 }
               }}
-              icon={<FileJson size={13} />}
             >
-              {p.name}'s bundle
-            </Chip>
+              <span className="avatar">
+                <FileKey2 size={12} />
+              </span>
+              {p.name}
+            </button>
           ))}
         </div>
       )}
-      {err && <Callout tone="bad">{err}</Callout>}
+      {err && <Note tone="bad">{err}</Note>}
     </div>
-  );
-}
-
-export function BundleSummary({ bundle, onClear }: { bundle: ViewingBundle; onClear: () => void }) {
-  return (
-    <div className="callout accent">
-      <Eye size={18} />
-      <div style={{ flex: 1 }}>
-        <b>Viewing key loaded for {bundle.account}.</b> It can see every payment to this account and
-        can never sweep one: it holds the view key and the spend <i>public</i> key, no spend key.
-        <div className="row" style={{ marginTop: 8 }}>
-          <Chip>contract {bundle.signer}</Chip>
-          <Chip>view_priv ••••••••</Chip>
-          <Button small variant="ghost" onClick={onClear}>
-            Forget
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function GoButton({ children, onClick }: { children: ReactNode; onClick: () => void }) {
-  return (
-    <Button small onClick={onClick} icon={<ArrowRight size={14} />}>
-      {children}
-    </Button>
   );
 }

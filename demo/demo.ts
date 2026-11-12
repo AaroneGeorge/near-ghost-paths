@@ -236,6 +236,12 @@ async function waitFor(what: string, f: () => Promise<boolean>, timeoutMs: numbe
 
 let relayerProc: ChildProcess | undefined;
 let composeUp: string[] | null = null;
+/**
+ * DEMO_NATIVE_CHAINS=1: run `anvil` and `solana-test-validator` from PATH instead of docker. For
+ * Apple Silicon, where the agave image has no arm64 build and crashes under x86 emulation (AVX).
+ */
+const NATIVE = process.env.DEMO_NATIVE_CHAINS === "1";
+const nativeProcs: ChildProcess[] = [];
 
 async function startRelayer(keyFile: string): Promise<void> {
   const logFile = join(RUN_DIR, "relayer.log");
@@ -249,7 +255,15 @@ async function startRelayer(keyFile: string): Promise<void> {
   delete (env as Record<string, string | undefined>).GHOST_TAPE_PASSTHROUGH;
   const { openSync } = await import("node:fs");
   const fd = openSync(logFile, "w");
-  relayerProc = spawn("bun", [RELAYER], { cwd: ROOT, env, stdio: ["ignore", fd, fd] });
+  // KEEP=1 leaves the relayer serving after the demo exits (for `make web`); its own session means
+  // closing the terminal that ran the demo (SIGHUP to that session) does not take it down.
+  const keepAlive = KEEP && MODE !== "replay";
+  relayerProc = spawn("bun", [RELAYER], {
+    cwd: ROOT,
+    env,
+    stdio: ["ignore", fd, fd],
+    detached: keepAlive,
+  });
   await waitFor(
     "relayer",
     async () => {
@@ -279,6 +293,12 @@ function cleanup(): void {
   }
   // Without KEEP the run's NEAR accounts are deleted, so its keys are useless: drop them, keep logs/summary.
   if (!KEEP && MODE !== "replay") rmSync(HOME, { recursive: true, force: true });
+  for (const p of nativeProcs) {
+    if (p.exitCode != null) continue;
+    if (KEEP)
+      p.unref(); // keep the chains for `make web`; `make demo-clean` stops them
+    else p.kill("SIGTERM");
+  }
   if (composeUp && !KEEP) {
     spawnSync(
       composeUp[0] as string,
@@ -461,7 +481,27 @@ async function mainFlow(): Promise<void> {
 
   // 1. Infra
   header("1. Infrastructure: NEAR testnet accounts, contract, local chains, MPC root keys", "0:00");
-  if (MODE === "local") {
+  if (MODE === "local" && NATIVE) {
+    console.log(dim("  starting anvil + solana-test-validator natively (DEMO_NATIVE_CHAINS=1)…"));
+    const { openSync } = await import("node:fs");
+    const start = (name: string, cmd: string, args: string[]) => {
+      const fd = openSync(join(RUN_DIR, `${name}.log`), "w");
+      const p = spawn(cmd, args, { cwd: RUN_DIR, stdio: ["ignore", fd, fd], detached: true });
+      p.on("error", (e) => console.error(red(`  ${cmd}: ${e.message} (is it on PATH?)`)));
+      nativeProcs.push(p);
+    };
+    start("anvil", "anvil", [
+      ...["--host", "127.0.0.1", "--port", String(ANVIL_PORT), "--chain-id", "31337", "--silent"],
+    ]);
+    start("solana", "solana-test-validator", [
+      ...["--ledger", join(RUN_DIR, "solana-ledger"), "--reset", "--quiet"],
+      ...["--rpc-port", String(SOL_PORT)],
+    ]);
+    writeFileSync(
+      join(RUN_DIR, "native-chains.pid"),
+      nativeProcs.map((p) => String(p.pid)).join("\n"),
+    );
+  } else if (MODE === "local") {
     const d = dockerCmd();
     if (!d)
       throw new DemoError("docker is not available (make demo falls back to make demo-replay)");
@@ -485,6 +525,8 @@ async function mainFlow(): Promise<void> {
     );
     if (up.status !== 0) throw new DemoError(`docker compose up failed: ${up.stderr.slice(-500)}`);
     composeUp = d;
+  }
+  if (MODE === "local") {
     await waitFor(
       "anvil",
       () =>
@@ -836,6 +878,18 @@ async function cleanKept(): Promise<number> {
     : undefined;
   for (const run of existsSync(root) ? readdirSync(root) : []) {
     const dir = join(root, run);
+    const chainPids = join(dir, "native-chains.pid");
+    if (existsSync(chainPids)) {
+      for (const pid of readFileSync(chainPids, "utf8").split("\n").filter(Boolean)) {
+        try {
+          process.kill(Number(pid), "SIGTERM");
+          console.log(`stopped native chain process ${pid} of ${run}`);
+        } catch {
+          /* already gone */
+        }
+      }
+      rmSync(chainPids);
+    }
     const pidFile = join(dir, "relayer.pid");
     if (existsSync(pidFile)) {
       try {
@@ -892,7 +946,7 @@ async function main(): Promise<number> {
       console.log(
         `\n${green(bold(`demo OK: ${checks.filter((c) => c.ok).length}/${checks.length} checks passed in ${secs} s`))}${MODE === "replay" ? dim(" (replayed, offline)") : ""}`,
       );
-    if (KEEP && composeUp) {
+    if (KEEP && (composeUp || nativeProcs.length)) {
       console.log(
         dim(
           `  KEEP=1: chains still running (make chains-down to stop); profiles in ${HOME} (GHOST_HOME)`,

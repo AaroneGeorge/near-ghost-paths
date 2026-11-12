@@ -42,8 +42,9 @@ DOCKER := $(if $(filter sudo,$(DOCKER_OK)),sudo -n docker,docker)
 
 # NEAR testnet (real MPC) + local chains (anvil, solana-test-validator in docker).
 # Without docker it runs the offline replay instead and says so.
+# DEMO_NATIVE_CHAINS=1 runs anvil and solana-test-validator from PATH instead of docker (Apple Silicon).
 demo:
-	@if [ -n "$(DOCKER_OK)" ]; then bun demo/demo.ts; \
+	@if [ -n "$(DOCKER_OK)" ] || [ "$$DEMO_NATIVE_CHAINS" = 1 ]; then bun demo/demo.ts; \
 	else echo "docker not available: running the offline replay (make demo-replay) instead"; bun demo/demo.ts --replay; fi
 
 # Same as demo, and records every HTTP exchange into demo/fixtures/replay/ for demo-replay.
@@ -71,9 +72,9 @@ demo-testnet:
 demo-live:
 	bun demo/demo.ts --live
 
-# Render docs/video/ghost-paths-demo.mp4 (+ poster.png, demo-capture.txt) from a real `KEEP=1 make demo` run and the
-# real web UI in Playwright chromium; needs docker, network, ffmpeg. Stops what it started (make demo-clean).
-# VIDEO_SOURCE=replay uses the offline replay and the simulated UI instead (captions then say replayed/simulated).
+# Render docs/video/ghost-paths-demo.mp4 (+ poster.png, demo-capture.txt, explorer-links.txt), all live on testnet:
+# the web app in Brave, `KEEP=1 make demo-testnet` in Terminal.app, the explorer pages. macOS, Brave, ffmpeg and a funded
+# .secrets/demo/testnet-payer.env (docs/VIDEO-SCRIPT.md). Stops what it started (make demo-clean).
 video:
 	bun scripts/record-video.ts
 

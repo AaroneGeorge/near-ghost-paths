@@ -11,7 +11,8 @@
       ".secrets",
       "contract/res",
       "demo/fixtures",
-      "dist"
+      "dist",
+      ".claude"
     ]
   }
 }

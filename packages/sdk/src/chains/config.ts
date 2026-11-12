@@ -66,7 +66,12 @@ const TABLE: Record<string, Omit<ChainInfo, "tag">> = {
   "evm:11155111": {
     family: "evm",
     name: "Ethereum Sepolia",
-    rpc: ["https://ethereum-sepolia-rpc.publicnode.com", "https://rpc.sepolia.org"],
+    // rpc.sepolia.org is gone (404); public fallbacks so one rate-limited node does not stop a run
+    rpc: [
+      "https://ethereum-sepolia-rpc.publicnode.com",
+      "https://sepolia.gateway.tenderly.co",
+      "https://1rpc.io/sepolia",
+    ],
     txUrl: (h) => `https://sepolia.etherscan.io/tx/${h}`,
     addressUrl: (a) => `https://sepolia.etherscan.io/address/${a}`,
     symbol: "ETH",

@@ -12,8 +12,8 @@ Bitcoin, Ethereum or Solana key: the MPC network signs for every chain from the 
 
 The use case aimed at a normal company is **private payroll**: an employer pays contractors in ETH at stealth addresses and the accountant gets a viewing key.
 
-![Send tab: one-time address, derivation and the announcement as the chain sees it](docs/img/ui-send.png)
-![Scan tab: the recipient finds payments in the public log](docs/img/ui-scan.png)
+![Send: the payment lands at a brand-new address used only once](docs/img/ui-send.png)
+![Inbox: only the recipient's key finds the payment, and withdraws it from the same row](docs/img/ui-inbox.png)
 
 Related project by the same submitter: see [Related project](#related-project-by-the-same-submitter) (Tripwire).
 
@@ -74,8 +74,8 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
    ```bash
    make web-sim
    ```
-   See: `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788` and an `open http://127.0.0.1:8788/?token=…` line. Open that URL (the token authorises pay, sweep and scan for this session): tabs **Send**, **Scan**, **Sweep**, **Auditor**, and a banner saying the chains are simulated.
-   Send 0.01 ETH to `bob`; Scan as the recipient shows 1 payment; "As a stranger" shows 0; Sweep moves the balance. Stop with Ctrl-C.
+   See: `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788` and an `open http://127.0.0.1:8788/?token=…` line. Open that URL (the token authorises pay, sweep and scan for this session): four pages, **Send**, **Inbox**, **What others see** and **Accountant**, and a "Demo mode" strip saying the networks are simulated.
+   Send 0.01 ETH to `bob`; **Open bob's inbox** shows 1 payment; **Withdraw** moves the balance; **What others see** finds 0; **Accountant** opens a read-only view with a CSV download. Stop with Ctrl-C.
    (`make web-e2e` drives exactly this with Playwright; it needs a Chromium that Playwright can find.)
 
 ### Real run: NEAR testnet MPC plus local chains (about 90 seconds, plus docker start)
@@ -113,7 +113,7 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
 10. `make demo-live`: designed for NEAR mainnet + Base + a 1Click confidential sweep. It **refuses** without `MAINNET_APPROVED=1`, a mainnet contract and mainnet profiles, prints what is missing, runs only a free keyless 1Click **dry** quote
     and exits 0 having spent nothing. No mainnet contract exists yet (see [Limitations](#limitations-and-next-steps)).
 
-11. `make video`: renders the demo video, `docs/video/ghost-paths-demo.mp4` (1:52, silent, burned-in captions, poster next to it), from a real `KEEP=1 make demo` run and the real web UI driven by Playwright; it cleans up afterwards. It shows the testnet MPC with local chains, the web send/scan/sweep flow, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). `VIDEO_SOURCE=replay make video` renders offline and labels itself replayed/simulated.
+11. `make video` (macOS, Brave, a funded testnet payer): renders the demo video, `docs/video/ghost-paths-demo.mp4` (1:48, silent, burned-in captions, poster next to it), all live on NEAR testnet, Sepolia and Solana devnet. Alice pays Bob in the web app, Bob withdraws, what outsiders and his accountant see; then a behind-the-scenes card, a real Terminal.app run of `make demo-testnet` and the explorer pages of those transactions as proof, use cases, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). Setup and storyboard: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
 
 ---
 
@@ -195,7 +195,7 @@ A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 | `packages/relayer/` | small HTTP relayer with its own NEAR account: `/announce`, `/sweep`, `/health` |
 | `apps/web/` | Vite + React UI: Send, Scan, Sweep, Auditor |
 | `demo/` | `demo.ts` (what `make demo*` runs), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
-| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:52, silent with captions), its poster and the captured run output |
+| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:48, silent with captions), its poster, the captured Terminal output and the explorer links it shows |
 | `scripts/` | `record-video.ts`, what `make video` runs |
 
 Run any CLI command through `make ghost ARGS="status"` or `bun packages/cli/src/ghost.ts <command>`. Each command accepts `--json`. See [docs/DEMO.md](docs/DEMO.md) for the exact commands and expected output of every step.

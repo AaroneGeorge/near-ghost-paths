@@ -49,10 +49,11 @@ export class EvmKeyPayer implements PayerWallet {
   async pay(to: string, amount: bigint) {
     assertSpendAllowed(this.chain, "pay");
     const c = this.adapter.client;
-    const [chainId, nonce, fees] = await Promise.all([
+    const [chainId, nonce, fees, gas] = await Promise.all([
       c.getChainId(),
       c.getTransactionCount({ address: this.address as `0x${string}`, blockTag: "pending" }),
       this.adapter.fees(),
+      this.adapter.transferGas(this.address, to, amount),
     ]);
     const signed = await this.account.signTransaction({
       type: "eip1559",
@@ -60,7 +61,7 @@ export class EvmKeyPayer implements PayerWallet {
       nonce,
       to: to as `0x${string}`,
       value: amount,
-      gas: 21_000n,
+      gas,
       ...fees,
     });
     const hash = await c.sendRawTransaction({ serializedTransaction: signed });
