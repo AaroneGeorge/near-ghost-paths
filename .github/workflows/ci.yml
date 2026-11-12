@@ -16,7 +16,6 @@ jobs:
 
   contract:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('contract/Cargo.toml') != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
