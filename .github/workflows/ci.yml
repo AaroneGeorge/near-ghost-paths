@@ -18,8 +18,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      # contract/rust-toolchain.toml pins rustc and the wasm32 target; rustup installs it on first use.
+      - run: rustup toolchain install
+        working-directory: contract
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: contract
-      - run: cargo test --manifest-path contract/Cargo.toml
+      # The integration tests build the wasm with `cargo near build` and run it in near-workspaces.
+      - run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/latest/download/cargo-near-installer.sh | sh
+      - run: cargo test
+        working-directory: contract
