@@ -107,6 +107,11 @@ GHOST_HOME=$D/bob-home     bun packages/cli/src/ghost.ts register --as bob      
 GHOST_HOME=$D/relayer-home bun packages/cli/src/ghost.ts account create --as relayer --fund 1
 ```
 
+Or follow the setup guide, as a real recipient would: `receive.html?account=yourname.testnet` (in `apps/web/dist`, or the hosted
+pay page's folder; the pay page links to it when a recipient isn't set up) shows the same commands filled in, a live **Ready** /
+**Not set up** check, and the `ghost serve` command for the hosted relayer. Verified on 2026-11-14: create, init, register (0.0016 NEAR),
+serve.
+
 **Run**
 
 ```bash

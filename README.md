@@ -120,6 +120,8 @@ This is the product as two people use it, with nothing simulated: the payer pays
 (`apps/web/pay.html`, static, hostable: [`docs/HOSTING.md`](docs/HOSTING.md)), and the recipient sees and withdraws the payment in
 their **own** app (`ghost serve`, holding only their keys). Needs MetaMask with a little Sepolia ETH and a NEAR testnet funder for
 the one-time setup (a registered recipient and a relayer account): [`docs/DEMO.md`, "Two people, real wallets"](docs/DEMO.md#two-people-real-wallets-metamask-on-sepolia).
+If the recipient isn't set up yet, the pay page offers **Copy message** and **How to set up →**, which opens `receive.html?account=NAME`:
+a live Ready / Not set up check and the commands they run on their own computer (`ghost init`, `register`, `serve`), filled in for them.
 
 ```bash
 make two-party
@@ -225,7 +227,7 @@ A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 | `packages/sdk/` | keys, stealth math, MPC derivation, announcements and memos, scan, registry clients (in-memory and NEAR), chain adapters (EVM via viem, Solana via web3.js, Bitcoin via chainsig.js), 1Click client |
 | `packages/cli/` | the `ghost` CLI (`bun packages/cli/src/ghost.ts --help`) and `ghost serve`, the HTTP API behind the web UI |
 | `packages/relayer/` | small HTTP relayer with its own NEAR account: `/announce`, `/sweep`, `/health` |
-| `apps/web/` | Vite + React, two pages. `pay.html`: the payer's page (MetaMask over EIP-1193/EIP-6963, the one-time address computed in the browser, the note posted through the relayer; no keys, no server; host it anywhere, [`docs/HOSTING.md`](docs/HOSTING.md)). `index.html`: the recipient's app on top of `ghost serve` (Inbox, What others see, Accountant; Send only in the all-in-one local demo) |
+| `apps/web/` | Vite + React, three pages. `pay.html`: the payer's page (MetaMask over EIP-1193/EIP-6963, the one-time address computed in the browser, the note posted through the relayer; no keys, no server; host it anywhere, [`docs/HOSTING.md`](docs/HOSTING.md)). `receive.html`: the recipient's setup guide (static, holds no keys). `index.html`: the recipient's app on top of `ghost serve` (Inbox, What others see, Accountant; Send only in the all-in-one local demo) |
 | `demo/` | `demo.ts` (what `make demo*` runs), `two-party.ts` (`make two-party`: relayer + recipient app + pay page), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
 | `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), HOSTING (pay page + relayer), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:31, silent with captions, real MetaMask on NEAR testnet + Sepolia), its poster and the explorer links it shows; `docs/video/automated/` the Terminal output and links of the older automated cut |
 | `scripts/` | `record-video.ts`, what `make video` runs |
