@@ -14,7 +14,7 @@ Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z**. One attempt per repository (
 - [ ] `make demo-replay`, `make test-ts` and `make web-sim` pass on a fresh clone of the **public** repository (this was checked on a fresh local clone; repeat once on the public URL).
 - [ ] The NEAR testnet funder for `make demo`/`make test-live` is not required for judges (they can use `make demo-replay`), but if you want `make demo` to work on their machine the faucet helper must not be rate-limited for them (it limits per IP).
 - [ ] No secrets committed: `.secrets/` is git-ignored. Check with `git ls-files | grep -E '^\.secrets|(^|/)\.env$|\.pem$|secret'` (expect no output). (The replay tapes contain NEAR transaction signatures that look like keys; they are not keys, and `packages/sdk/test/fixtures.test.ts` asserts that no secret-key field is present.)
-- [x] Demo video recorded: `docs/video/ghost-paths-demo.mp4` (1:02, real MetaMask on NEAR testnet + Sepolia; `docs/VIDEO-SCRIPT.md`). Upload it with the X post.
+- [x] Demo video recorded: `docs/video/ghost-paths-demo.mp4` (1:31, real MetaMask on NEAR testnet + Sepolia; `docs/VIDEO-SCRIPT.md`). Upload it with the X post.
 - [ ] X post published per `docs/X-POST.md` (built at NEAR HACKATHON, @NEARProtocol, #NEARHackathon, video attached). Keep the URL.
 - [ ] Hosted demo (optional, Q-012): none. A local demo is acceptable if the repository is public and reproducible.
 
