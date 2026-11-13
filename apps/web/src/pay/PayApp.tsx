@@ -9,13 +9,17 @@ import { parseHandle } from "@ghost-paths/sdk/src/keys.ts";
 import { makeTarget, predecessorFor } from "@ghost-paths/sdk/src/stealth.ts";
 import type { AnnounceArgs, ChainTag, Memo } from "@ghost-paths/sdk/src/types.ts";
 import {
+  ArrowDownToLine,
   ArrowRight,
   Check,
   Copy,
   Ghost,
+  Inbox,
   Laptop,
   Lock,
+  Megaphone,
   RotateCcw,
+  Send,
   UserCheck,
   UserX,
   Wallet,
@@ -487,6 +491,8 @@ function Pay({ cfg }: { cfg: PayConfig }) {
               </motion.div>
             )}
           </AnimatePresence>
+
+          <HowItWorks cfg={cfg} chainName={info.name} />
         </div>
       </main>
 
@@ -503,6 +509,71 @@ function Pay({ cfg }: { cfg: PayConfig }) {
         </span>
       </footer>
     </div>
+  );
+}
+
+/** The whole path in four lines, and where a recipient finds their money (not on this page). */
+function HowItWorks({ cfg, chainName }: { cfg: PayConfig; chainName: string }) {
+  const guide = new URL("receive.html", window.location.href).href;
+  return (
+    <Panel title="How it works" className="how-it-works" data-testid="how-it-works">
+      <div className="stack" style={{ gap: 18 }}>
+        <ol className="limits how">
+          <li className="ok">
+            <Send size={17} />
+            <span>
+              <b>You pay a name, not an address.</b> This page reads the recipient's public keys
+              from NEAR and works out a brand-new {chainName} address for this payment only. Your
+              wallet sends the money there, as a plain transfer.
+            </span>
+          </li>
+          <li className="ok">
+            <Megaphone size={17} />
+            <span>
+              <b>An encrypted note goes on NEAR.</b> A relayer posts it from its own account, so
+              neither of you appears there. Only the recipient can read it.
+            </span>
+          </li>
+          <li className="ok">
+            <Inbox size={17} />
+            <span>
+              <b>The recipient finds it in their own app.</b> On their own computer, their keys pick
+              out their payments among everyone's notes, and their Inbox lists them.
+            </span>
+          </li>
+          <li className="ok">
+            <ArrowDownToLine size={17} />
+            <span>
+              <b>They withdraw to any wallet.</b> NEAR Chain Signatures signs the transfer out of
+              the one-time address; the recipient never holds a private key for that address.
+            </span>
+          </li>
+        </ol>
+        <div className="stack" style={{ gap: 4 }}>
+          <More label="I'm the recipient: where do I see my money?" data-testid="how-recipient">
+            <p>
+              Not on this site, on purpose. Each payment sits at its own new address, and only your
+              keys can tell which ones are yours. Those keys never leave your computer, so your
+              payments show in your own Ghost Paths app (<code>ghost serve</code>): <b>Inbox</b>{" "}
+              lists them and <b>Withdraw</b> sends them to your wallet. Not set up yet?{" "}
+              <a href={guide}>Set up to receive</a>.
+            </p>
+          </More>
+          <More label="What can others see?" data-testid="how-public">
+            <p>
+              That some address on {chainName} received money, and that a note was posted on NEAR.
+              Not who it is for: the note has no recipient field, the address has no history, and
+              the recipient's NEAR account shows one transaction ever, its setup, however many
+              payments it gets.{" "}
+              <a href={nearAccountUrl(cfg, cfg.contract)} target="_blank" rel="noreferrer noopener">
+                See the public record
+              </a>
+              .
+            </p>
+          </More>
+        </div>
+      </div>
+    </Panel>
   );
 }
 
