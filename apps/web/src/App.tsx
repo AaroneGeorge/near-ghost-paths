@@ -18,6 +18,13 @@ const TABS: { id: TabId; label: string; long?: string; icon: React.ReactNode }[]
 
 function Shell() {
   const { cfg, cfgError, reload, tab, go } = useStore();
+  // A recipient's own app (no local payer wallet) has nothing to send from: payers use the pay page
+  // with their own wallet. The Send tab stays for the local all-in-one demo.
+  const canSend = !cfg || cfg.simulated || cfg.profiles.some((p) => p.wallet);
+  const tabs = TABS.filter((t) => t.id !== "send" || canSend);
+  useEffect(() => {
+    if (cfg && !canSend && tab === "send") go("inbox");
+  }, [cfg, canSend, tab, go]);
   const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 4);
@@ -29,12 +36,12 @@ function Shell() {
     <div className="shell">
       <header className={`top ${scrolled ? "scrolled" : ""}`}>
         <div className="top-in">
-          <button type="button" className="brand" onClick={() => go("send")}>
+          <button type="button" className="brand" onClick={() => go(canSend ? "send" : "inbox")}>
             <Ghost size={24} strokeWidth={2.2} />
             Ghost Paths
           </button>
           <nav className="nav" role="tablist" aria-label="Sections">
-            {TABS.map((t) => (
+            {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
@@ -113,7 +120,8 @@ function Shell() {
 
       <footer className="foot">
         <span>
-          Your keys stay with the Ghost Paths server. This page only ever sees public data.
+          Your keys stay in your Ghost Paths app on this computer. This page only ever sees public
+          data.
         </span>
         <span>
           Built on NEAR Chain Signatures.

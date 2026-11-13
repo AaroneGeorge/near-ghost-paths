@@ -38,7 +38,7 @@ GHOST := bun packages/cli/src/ghost.ts
 DOCKER_OK := $(shell (docker info >/dev/null 2>&1 && echo docker) || (sudo -n docker info >/dev/null 2>&1 && echo sudo))
 DOCKER := $(if $(filter sudo,$(DOCKER_OK)),sudo -n docker,docker)
 
-.PHONY: demo-record demo-replay-airgap demo-clean chains-up chains-down relayer ghost video
+.PHONY: demo-record demo-replay-airgap demo-clean chains-up chains-down relayer ghost video two-party
 
 # NEAR testnet (real MPC) + local chains (anvil, solana-test-validator in docker).
 # Without docker it runs the offline replay instead and says so.
@@ -72,7 +72,12 @@ demo-testnet:
 demo-live:
 	bun demo/demo.ts --live
 
-# Render docs/video/ghost-paths-demo.mp4 (+ poster.png, demo-capture.txt, explorer-links.txt), all live on testnet:
+# The product as two people use it: the payer's page (MetaMask on Sepolia, no keys) on :8790, the recipient's own
+# app on :8791, a relayer on :8792. NEAR testnet + Sepolia. One-time setup: docs/DEMO.md "Two people, real wallets".
+two-party:
+	bun demo/two-party.ts
+
+# Render the automated video into docs/video/automated/ (+ poster.png, demo-capture.txt, explorer-links.txt), all live on testnet:
 # the web app in Brave, `KEEP=1 make demo-testnet` in Terminal.app, the explorer pages. macOS, Brave, ffmpeg and a funded
 # .secrets/demo/testnet-payer.env (docs/VIDEO-SCRIPT.md). Stops what it started (make demo-clean).
 video:

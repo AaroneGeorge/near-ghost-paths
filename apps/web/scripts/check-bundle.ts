@@ -39,10 +39,32 @@ const envSecrets = Object.entries(process.env)
   )
   .map(([k, v]) => [k, v as string] as const);
 
+/**
+ * Public values the pay page legitimately carries (they would trip the patterns above): the curve
+ * parameters of secp256k1 and ed25519 (field primes, group orders, generator coordinates, d,
+ * sqrt(-1)) from @noble/curves, and NEAR's MPC root PUBLIC keys (packages/sdk/src/chainsig-lite.ts).
+ * Exact strings only; they are removed before scanning.
+ */
+const PUBLIC = [
+  "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f", // secp256k1 p
+  "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", // secp256k1 n
+  "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798", // secp256k1 Gx
+  "483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8", // secp256k1 Gy
+  "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed", // ed25519 p
+  "7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec", // ed25519 a = p - 1
+  "1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed", // ed25519 L
+  "52036cee2b6ffe738cc740797779e89800700a4d4141d8ab75eb4dca135978a3", // ed25519 d
+  "216936d3cd6e53fec0a4e231fdd6dc5c692cc7609525a7b2c9562d608f25d51a", // ed25519 Gx
+  "6666666666666666666666666666666666666666666666666666666666666658", // ed25519 Gy
+  "7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee", // secp256k1 endomorphism beta (GLV)
+  "secp256k1:4NfTiv3UsGahebgTaHyD9vF8KYKMBnfd6kh94mK6xv8fGBiJB8TBtFMP5WWXz6B89Ac1fbpzPwAvoyQebemHFwx3", // MPC testnet root
+  "secp256k1:3tFRbMqmoa6AAALMrEFAYCEoHcqKxeW38YptwowBVBtXK1vo36HDbUWuR6EZmoK4JcH6HDkNMGGqP1ouV7VZUWya", // MPC mainnet root
+];
+
 let bad = 0;
 for (const f of files) {
   if (/\.(png|ico|woff2?)$/.test(f)) continue;
-  const text = readFileSync(f, "utf8");
+  const text = PUBLIC.reduce((t, v) => t.replaceAll(v, ""), readFileSync(f, "utf8"));
   for (const [name, re] of patterns) {
     const m = re.exec(text);
     if (m) {

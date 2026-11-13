@@ -1,7 +1,7 @@
 /** W3 relayer tests: input validation happens before any NEAR call (offline). */
 import { afterAll, describe, expect, test } from "bun:test";
 import { newKeyPair } from "@ghost-paths/sdk";
-import { RateLimiter, parseSweepBody, startRelayer } from "../src/server.ts";
+import { RateLimiter, clientIp, parseSweepBody, startRelayer } from "../src/server.ts";
 
 const server = startRelayer({
   network: "testnet",
@@ -105,5 +105,11 @@ describe("relayer abuse limits (REVIEW M3)", () => {
     expect([l.allow("a", t), l.allow("a", t), l.allow("a", t)]).toEqual([true, true, false]);
     expect([l.allow("b", t), l.allow("b", t)]).toEqual([true, false]); // global cap 3
     expect(l.allow("a", t + 60_000)).toBe(true); // next window
+  });
+  test("client IP: X-Forwarded-For only with RELAYER_TRUST_PROXY and from a loopback peer", () => {
+    expect(clientIp("203.0.113.9", "1.2.3.4", true)).toBe("203.0.113.9"); // not from the local proxy
+    expect(clientIp("127.0.0.1", "1.2.3.4", false)).toBe("127.0.0.1"); // not enabled
+    expect(clientIp("127.0.0.1", "9.9.9.9, 1.2.3.4", true)).toBe("1.2.3.4"); // proxy-appended entry
+    expect(clientIp("::ffff:127.0.0.1", "1.2.3.4", true)).toBe("1.2.3.4");
   });
 });

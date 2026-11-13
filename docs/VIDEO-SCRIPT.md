@@ -1,21 +1,54 @@
-# Demo video script (2:00 maximum)
+# Demo video
 
-Goal: a product demo first (Alice and Bob in the web app), then a plain-words "behind the scenes", then proof that it is live
-on test networks (a real Mac Terminal run and the block explorers), then what you can build and sell with it.
-Honesty rule: the limits card stays in. Do not claim confidential sweeps, Bitcoin payments or mainnet.
+Honesty rule: no claim the video does not show. No confidential sweeps, no Bitcoin payments, no mainnet.
 
-## The rendered video
+## The shipped video: two people, real MetaMask (`docs/video/ghost-paths-demo.mp4`)
 
-`docs/video/ghost-paths-demo.mp4` (1:48, 1280x720, 3.3 MB, silent with burned-in captions) is produced by `make video`
-(`scripts/record-video.ts`), together with `docs/video/poster.png` (the title card), `docs/video/demo-capture.txt` (the
-Terminal run's output), `docs/video/explorer-links.txt` (every transaction shown) and the README screenshots
-`docs/img/ui-send.png` and `docs/img/ui-inbox.png`. Reshot on 2026-11-11.
+1:31, 1920x1080 at 30 fps, silent with burned-in captions; poster `docs/video/poster.png`; every transaction it shows is in
+`docs/video/explorer-links.txt`. Recorded on 2026-11-13 with `make two-party` ([`docs/DEMO.md`](DEMO.md#two-people-real-wallets-metamask-on-sepolia)):
+NEAR testnet with the real Chain Signatures MPC (`v1.signer-prod.testnet`) and Ethereum Sepolia, the MetaMask extension in
+Brave. Alice's pay page (`:8790/pay.html`, no keys) and Bob's own app (`:8791`, `ghost serve` with only Bob's keys) are two
+tabs of one browser; MetaMask is on the right.
 
-Everything is **live**: NEAR testnet with the real Chain Signatures MPC (`v1.signer-prod.testnet`), Ethereum Sepolia and
-Solana devnet. Nothing is replayed or simulated. Each caption bar names whose screen it is (Alice's screen, Bob's screen,
-Everyone else, Bob's accountant, Proof, or the explorer's name).
+The browser's bookmarks bar, its "Claude started debugging this browser" strip and the "Claude is working here" badge
+(both shown while the pages were driven by script) are removed in the edit: the two bars are cut out, and the badge's spot
+in the app header is replaced with a clean capture of the same header (Alice's live wallet balance is left as recorded).
+The browser extension's orange cursor and its action labels ("Clicking", "Typing", a click ripple) are detected frame by
+frame and filled in from the last clean frame (or, where the cursor sat still, from the surrounding pixels).
 
-## Storyboard (as cut)
+Edit: the full screen as a rounded window with a soft shadow on a dark gradient; an eased zoom on each moment that matters;
+one caption pill per moment, tagged ALICE, BOB or EVERYONE ELSE, fading in and out; 0.35 s crossfades. Waits (the Sepolia
+block, Bob's scan, the MPC signature) are cut, not sped up; everything plays at real speed.
+
+| Time | Who | What happens |
+|---|---|---|
+| 0:00 | Title | "Pay anyone privately by their NEAR name, from your own wallet." |
+| 0:03 | Alice | Zoom on the form: recipient `ghostbob.testnet` is **Ready**, note "Invoice #45, logo design", Send. |
+| 0:07 | Alice | Zoom on MetaMask: "Sending 0.001 SepoliaETH" from Alice's account to a brand-new one-time address; Confirm. |
+| 0:10 | Alice | The three steps; the relayer posts the encrypted note on NEAR (announcement #90). |
+| 0:16 | Alice | "Sent privately": the one-time address `0x211D…73C8`, the path picture. |
+| 0:24 | Bob | His own app's Inbox, then the new payment with its note decrypted. |
+| 0:29 | Bob | Withdraw to his everyday wallet (`0xc527…d509`). |
+| 0:37 | Bob | Approving with his key; NEAR's signing network signs for the one-time address (5.7 s on chain). |
+| 0:45 | Bob | "+0.000999 ETH arrived" (balance 0.502999 → 0.503999). |
+| 0:51 | Everyone else | "What others see": a fresh key reads every public note and traces **0** payments. |
+| 0:57 | Behind the scenes | A diagram built up in three steps: Alice → one-time address → Bob, with NEAR underneath (registry, sealed notes, Chain Signatures). 1: Bob publishes two public keys once. 2: Alice's browser derives a brand-new address only Bob can spend and leaves a sealed note. 3: Bob's key approves and NEAR's MPC network signs; no one ever holds that address's private key. |
+| 1:07 | Proof (explorers) | Screenshots with the key fields highlighted: Sepolia, Alice → the fresh one-time address; NearBlocks, the note posted by the relayer's account; the contract's event log for the note (one-time key, tag, ciphertext, no recipient); the withdrawal's call tree (`sweep` → `sign`, an opaque `gp1/…` path); Sepolia, the MPC-signed transfer out to the address Bob chose ("a fresh one keeps him unlinkable"); `ghostbob.testnet`'s account page: one transaction ever, his registration. |
+| 1:27 | End card | Repo URL, "Built at NEAR HACKATHON". |
+
+How it was made: ffmpeg (avfoundation) captured the screen while the pages were driven by script and the MetaMask Confirm
+was clicked by hand; a check at 10 fps confirmed no other window appears in the take; the edit was rendered from that one take: every frame through PIL with sub-pixel zooms (ffmpeg's `zoompan` rounds
+positions to whole pixels and visibly shakes on slow zooms), PIL-drawn frame, pills and cards, ffmpeg `xfade` crossfades.
+Bob's address was entered by hand: MetaMask shares only its active account with a page, which was Alice's.
+
+## The automated video (`make video`)
+
+`make video` (`scripts/record-video.ts`) renders an older, fully automated cut into `docs/video/automated/` (not committed;
+`demo-capture.txt` and `explorer-links.txt` there are from its 2026-11-11 run): the web app's all-in-one local demo in Brave,
+a real Terminal.app run of `make demo-testnet`, the explorer pages, and cards. Everything in it is live on NEAR testnet,
+Sepolia and Solana devnet. Each caption bar names whose screen it is.
+
+### Storyboard of the automated cut
 
 | Time | Scene | What is on screen |
 |---|---|---|
@@ -31,7 +64,7 @@ Everyone else, Bob's accountant, Proof, or the explorer's name).
 The web app part plays at normal speed; only waits (for blocks and the MPC) are cut out. If the web part grows, the script
 plays it up to 1.3x faster to stay under 2:00, and fails rather than going over.
 
-## Recording it
+### Recording it
 
 macOS only (it drives Terminal.app and Brave). Needs:
 
@@ -63,7 +96,7 @@ Options: `VIDEO_KEEP=1` keeps the work folder in `runs/video-<time>/`; `VIDEO_RE
 reuses the live takes saved there and only redoes the edit; `VIDEO_KEEP_STATE=1` skips `make demo-clean`;
 `VIDEO_PART=cards` renders only the cards and `VIDEO_PART=termtest` checks the Terminal window capture.
 
-## Shot checklist
+### Shot checklist
 
 - [ ] No secret on screen: the UI shows no keys and the demo never prints one.
 - [ ] The `gp-*.testnet` accounts are throwaway and deleted by `make demo-clean` (the script runs it).

@@ -21,6 +21,8 @@
  *   RELAYER_ALLOW_IPS     comma-separated client IPs allowed to POST (default: any)
  *   RELAYER_RATE_PER_IP   POSTs per client IP per minute (default 30)
  *   RELAYER_RATE_GLOBAL   POSTs per minute in total (default 120)
+ *   RELAYER_TRUST_PROXY=1 behind a reverse proxy on the same host: take the client IP from the last
+ *                         X-Forwarded-For entry (the one the proxy appended), for the per-IP limit
  *   RELAYER_CORS_ORIGINS  browser origins allowed (default the `ghost serve` origins on :8788). Any other
  *                         Origin is refused with 403, so a web page cannot drive a local relayer.
  * A sweep that was already submitted (same args) is answered from cache until it expires, so copying
@@ -62,6 +64,14 @@ export interface RelayerOptions {
   /** POSTs per IP per minute (default 30) and in total per minute (default 120). */
   ratePerIp?: number;
   rateGlobal?: number;
+  /** Behind a reverse proxy: client IP = last X-Forwarded-For entry (only when the peer is loopback). */
+  trustProxy?: boolean;
+}
+
+/** Client IP for limits. A forwarded IP is trusted only from a loopback peer (the local proxy). */
+export function clientIp(peer: string, xff: string | null, trustProxy: boolean): string {
+  if (!trustProxy || !xff || !isLoopback(peer.replace(/^::ffff:/, ""))) return peer;
+  return xff.split(",").pop()?.trim() || peer;
 }
 
 const MAX_BODY = 64 * 1024;
@@ -260,7 +270,11 @@ export function startRelayer(o: RelayerOptions) {
     idleTimeout: 120, // MPC signing takes 5–30 s
     async fetch(req, srv) {
       try {
-        return await handle(req, srv.requestIP(req)?.address ?? "?");
+        const peer = srv.requestIP(req)?.address ?? "?";
+        return await handle(
+          req,
+          clientIp(peer, req.headers.get("x-forwarded-for"), !!o.trustProxy),
+        );
       } catch (e) {
         const status = e instanceof HttpError ? e.status : 502;
         const msg = (e as Error)?.message ?? String(e);
@@ -331,5 +345,6 @@ if (import.meta.main) {
     rateGlobal: process.env.RELAYER_RATE_GLOBAL
       ? Number(process.env.RELAYER_RATE_GLOBAL)
       : undefined,
+    trustProxy: process.env.RELAYER_TRUST_PROXY === "1",
   });
 }
