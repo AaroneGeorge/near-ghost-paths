@@ -159,6 +159,16 @@ export function Note({
   );
 }
 
+/** Copies to the clipboard and confirms with a toast. */
+export async function copyText(value: string, message = "Copied"): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(value);
+  } catch {
+    /* clipboard blocked: still show feedback */
+  }
+  toast.success(message);
+}
+
 export function CopyText({
   value,
   head = 10,
@@ -179,13 +189,8 @@ export function CopyText({
       title={`${value}\n(click to copy)`}
       {...rest}
       onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(value);
-        } catch {
-          /* clipboard blocked: still show feedback */
-        }
+        await copyText(value);
         setDone(true);
-        toast.success("Copied");
         setTimeout(() => setDone(false), 1200);
       }}
     >

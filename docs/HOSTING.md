@@ -5,6 +5,7 @@ Two pieces are meant to be hosted. The third, the recipient's app, is not.
 | Piece | What it is | Holds keys? | Host it? |
 |---|---|---|---|
 | **Pay page** (`apps/web/dist/pay.html` + `assets/`) | Static files. The payer's own wallet (MetaMask) signs; the one-time address is computed in the browser from the recipient's public meta-address on NEAR. | no | yes, any static host |
+| **Setup guide** (`apps/web/dist/receive.html`, same build) | Static. Checks live whether an account is registered and shows the commands a recipient runs on their own computer (`ghost init`, `register`, `serve`), filled in with their name and this relayer. The pay page links to it when a recipient isn't set up. | no | yes, next to `pay.html` |
 | **Relayer** (`packages/relayer/src/server.ts`) | Posts the payer's encrypted note (`announce`) and recipients' withdrawals (`sweep`) on NEAR from its own account, so neither person appears there. | its own NEAR account key (pays gas and each note's storage) | yes, one small process |
 | Recipient app (`ghost serve`, `apps/web/dist/index.html`) | Scans, decrypts notes, authorises withdrawals. | the recipient's seed | **no**: each recipient runs it on their own machine (`ghost serve` binds to 127.0.0.1) |
 
@@ -27,6 +28,8 @@ Goal: anyone with MetaMask can try the product in a minute, without cloning anyt
    ```
    (or set `"defaultRecipient": "ghostbob.testnet"` in `pay-config.json`, section 1). The page then opens with
    `ghostbob.testnet` filled in and **Ready**, and shows a one-line note: test network, no real money, a link to a Sepolia faucet.
+   The same folder serves `receive.html`: a payer who enters an account that isn't set up gets **Copy message** and
+   **How to set up →** (`receive.html?account=NAME`), the recipient's own setup guide. It never makes or sees their keys.
 2. **Relayer** at `https://relay.example.com` (section 2), with about 5 testnet NEAR and
    `RELAYER_CORS_ORIGINS=https://pay.example.com`.
 3. Nothing else. `ghostbob.testnet` is already registered on `v1.ghost-paths.testnet`; its keys stay on the owner's machine
@@ -62,7 +65,7 @@ cd apps/web
 VITE_GHOST_RELAYER_URL=https://relay.example.com bun run build
 ```
 
-See: `check-bundle: 30 files, no secrets found`. Copy `apps/web/dist/` to the web root of `pay.example.com`.
+See: `check-bundle: 35 files, no secrets found`. Copy `apps/web/dist/` to the web root of `pay.example.com`.
 The page is `https://pay.example.com/pay.html`; `https://pay.example.com/pay.html?to=ghostbob.testnet` pre-fills the recipient.
 (The same `dist/` also contains `index.html`, the recipient app. Served without `ghost serve` it only shows "Can't reach the
 Ghost Paths server", so you can delete it, or redirect `/` to `/pay.html`.)
@@ -176,7 +179,7 @@ pay.example.com {
 	file_server
 	redir / /pay.html
 	header {
-		Content-Security-Policy "default-src 'self'; connect-src 'self' https://relay.example.com https://test.rpc.fastnear.com https://rpc.testnet.near.org https://ethereum-sepolia-rpc.publicnode.com https://sepolia.gateway.tenderly.co https://1rpc.io; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; connect-src 'self' https://relay.example.com https://test.rpc.fastnear.com https://rpc.testnet.near.org https://ethereum-sepolia-rpc.publicnode.com https://sepolia.gateway.tenderly.co https://1rpc.io; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; frame-ancestors 'none'"
 		X-Content-Type-Options nosniff
 		Referrer-Policy no-referrer
 	}
@@ -187,7 +190,7 @@ relay.example.com {
 }
 ```
 
-Caddy sets `X-Forwarded-For` itself. The `connect-src` list is the relayer, the NEAR RPCs from `nearRpc` and the Sepolia RPCs the
+Caddy sets `X-Forwarded-For` itself. `font-src` needs `data:`: the build inlines its smallest fonts as `data:` URLs. The `connect-src` list is the relayer, the NEAR RPCs from `nearRpc` and the Sepolia RPCs the
 page reads balances from; add your own if you change them. (The wallet talks to its own nodes; that traffic is not the page's.)
 
 ### nginx

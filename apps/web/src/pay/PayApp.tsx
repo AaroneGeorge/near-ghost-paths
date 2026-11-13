@@ -8,12 +8,24 @@ import { chainInfo, formatUnits, parseUnits } from "@ghost-paths/sdk/src/chains/
 import { parseHandle } from "@ghost-paths/sdk/src/keys.ts";
 import { makeTarget, predecessorFor } from "@ghost-paths/sdk/src/stealth.ts";
 import type { AnnounceArgs, ChainTag, Memo } from "@ghost-paths/sdk/src/types.ts";
-import { Check, Ghost, Lock, RotateCcw, UserCheck, UserX, Wallet } from "lucide-react";
+import {
+  ArrowRight,
+  Check,
+  Copy,
+  Ghost,
+  Laptop,
+  Lock,
+  RotateCcw,
+  UserCheck,
+  UserX,
+  Wallet,
+} from "lucide-react";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Toaster } from "sonner";
 import { GhostPath } from "../ghostpath.tsx";
 import { short } from "../lib.ts";
+import { receiveUrl, setupMessage } from "../receive/setup.ts";
 import {
   Badge,
   Button,
@@ -26,6 +38,7 @@ import {
   Panel,
   Progress,
   type StepState,
+  copyText,
 } from "../ui.tsx";
 import { type PayConfig, loadPayConfig, nearAccountUrl, nearTxUrl } from "./config.ts";
 import { announce, checkContract, getMeta } from "./near.ts";
@@ -344,6 +357,14 @@ function Pay({ cfg }: { cfg: PayConfig }) {
                       </div>
                     </Field>
 
+                    <AnimatePresence initial={false}>
+                      {meta === "missing" && recipient && (
+                        <motion.div key="setup" {...swap}>
+                          <SetupNudge recipient={recipient} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <Field label="Amount" htmlFor="amount" hint={`On ${info.name}`}>
                       <div className="amount-box">
                         <input
@@ -481,6 +502,35 @@ function Pay({ cfg }: { cfg: PayConfig }) {
           </a>
         </span>
       </footer>
+    </div>
+  );
+}
+
+/** Not set up yet: what the payer can send them, and the guide they follow on their own computer. */
+function SetupNudge({ recipient }: { recipient: string }) {
+  const here = window.location.href;
+  return (
+    <div className="setup-nudge" data-testid="setup-nudge">
+      <p>
+        <Laptop size={18} />
+        <span>
+          {recipient} can set up once, in about 5 minutes, on their own computer. Their keys stay
+          there; this page never sees them.
+        </span>
+      </p>
+      <div className="row">
+        <Button
+          small
+          icon={<Copy size={14} />}
+          onClick={() => copyText(setupMessage(here, recipient), "Message copied")}
+          data-testid="copy-setup-message"
+        >
+          Copy message
+        </Button>
+        <a className="btn small quiet" href={receiveUrl(here, recipient)} data-testid="setup-guide">
+          How to set up <ArrowRight size={15} />
+        </a>
+      </div>
     </div>
   );
 }

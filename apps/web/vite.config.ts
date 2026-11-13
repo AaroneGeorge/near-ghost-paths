@@ -22,6 +22,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
     // index.html: the recipient's app (talks to `ghost serve`). pay.html: the payer's page, static,
     // no server and no keys (the payer's wallet signs); host it anywhere (docs/HOSTING.md).
-    rollupOptions: { input: { main: "index.html", pay: "pay.html" } },
+    // receive.html: the recipient's setup guide, static too; it reads the registry and holds no keys.
+    rollupOptions: { input: { main: "index.html", pay: "pay.html", receive: "receive.html" } },
   },
 });
