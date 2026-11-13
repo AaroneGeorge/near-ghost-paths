@@ -4,33 +4,34 @@ Honesty rule: no claim the video does not show. No confidential sweeps, no Bitco
 
 ## The shipped video: two people, real MetaMask (`docs/video/ghost-paths-demo.mp4`)
 
-1:39, 1920x1080, 3.6 MB, silent with burned-in captions; poster `docs/video/poster.png`; every transaction it shows is in
+1:02, 1920x1080 at 30 fps, silent with burned-in captions; poster `docs/video/poster.png`; every transaction it shows is in
 `docs/video/explorer-links.txt`. Recorded on 2026-11-13 with `make two-party` ([`docs/DEMO.md`](DEMO.md#two-people-real-wallets-metamask-on-sepolia)):
-NEAR testnet with the real Chain Signatures MPC (`v1.signer-prod.testnet`) and Ethereum Sepolia, the real MetaMask
-extension in Brave, nothing replayed or simulated. One browser plays both people (the title card says so): Alice's pay
-page (`:8790/pay.html`, no keys) and Bob's own app (`:8791`, `ghost serve` with only Bob's keys) are separate apps in two
-tabs; MetaMask is the side panel on the right. The browser bar is cropped out. Only the 8-second Sepolia block wait plays
-at 2x (the caption says so); other waits are cut.
+NEAR testnet with the real Chain Signatures MPC (`v1.signer-prod.testnet`) and Ethereum Sepolia, the MetaMask extension in
+Brave. Alice's pay page (`:8790/pay.html`, no keys) and Bob's own app (`:8791`, `ghost serve` with only Bob's keys) are two
+tabs of one browser; MetaMask is on the right.
 
-| Time | Whose screen | What happens |
+Edit: the full screen as a rounded window with a soft shadow on a dark gradient; an eased zoom on each moment that matters;
+one caption pill per moment, tagged ALICE, BOB or EVERYONE ELSE, fading in and out; 0.35 s crossfades. Waits (the Sepolia
+block, Bob's scan, the MPC signature) are cut, not sped up; everything plays at real speed.
+
+| Time | Who | What happens |
 |---|---|---|
-| 0:00 to 0:04 | Title card | "Pay anyone privately by their NEAR name, from your own wallet." Live on NEAR testnet + Sepolia; one browser plays both people. |
-| 0:04 to 0:13 | Alice, pay page | Recipient `ghostbob.testnet` shows **Ready** (live NEAR lookup); she types the note "Invoice #43, logo design". |
-| 0:13 to 0:26 | Alice, MetaMask | **Send 0.001 ETH privately** → MetaMask's Confirm screen: 0.001 SepoliaETH from Account 1 to `0x3c98…D59C`, a brand-new address computed in her browser → Confirm. |
-| 0:26 to 0:30 | Alice (2x) | Sepolia confirms; the relayer posts the encrypted note on NEAR (announcement #88). |
-| 0:30 to 0:44 | Alice, receipt | "Sent privately", the path picture, then Technical details: what NEAR recorded, with no recipient field. |
-| 0:44 to 0:53 | Bob, his own app | The Inbox shows the new payment without a click, note decrypted. |
-| 0:53 to 1:04 | Bob, MetaMask | Withdraw → **Use my wallet's address** → MetaMask's account picker → Connect. |
-| 1:04 to 1:22 | Bob, NEAR Chain Signatures | Approving with his key; the relayer submits; NEAR's signing network signs for the one-time address (6.6 s); "+0.000999 ETH arrived". |
-| 1:22 to 1:27 | Bob's wallet | The arrival; MetaMask's balance for `0xc527…d509` reads 0.501 → 0.502. |
-| 1:27 to 1:34 | Everyone else | "What others see": a fresh key reads every public note and traces **0** payments. |
-| 1:34 to 1:39 | End card | Repo URL, "Built at NEAR HACKATHON · NEAR Chain Signatures", limits: amounts and timing stay public; testnet only, not audited. |
+| 0:00 | Title | "Pay anyone privately by their NEAR name, from your own wallet." |
+| 0:03 | Alice | Zoom on the form: recipient `ghostbob.testnet` is **Ready**, note "Invoice #45, logo design", Send. |
+| 0:07 | Alice | Zoom on MetaMask: "Sending 0.001 SepoliaETH" from Alice's account to a brand-new one-time address; Confirm. |
+| 0:10 | Alice | The three steps; the relayer posts the encrypted note on NEAR (announcement #90). |
+| 0:16 | Alice | "Sent privately": the one-time address `0x211D…73C8`, the path picture. |
+| 0:24 | Bob | His own app's Inbox, then the new payment with its note decrypted. |
+| 0:29 | Bob | Withdraw to his everyday wallet (`0xc527…d509`). |
+| 0:37 | Bob | Approving with his key; NEAR's signing network signs for the one-time address (5.7 s on chain). |
+| 0:45 | Bob | "+0.000999 ETH arrived" (balance 0.502999 → 0.503999). |
+| 0:51 | Everyone else | "What others see": a fresh key reads every public note and traces **0** payments. |
+| 0:57 | End card | Repo URL, "Built at NEAR HACKATHON", "Testnet. Amounts and timing stay public." |
 
-How it was made: the screen was captured with ffmpeg (avfoundation) while the browser was driven and the two MetaMask
-clicks were made by hand; every frame where another window covered Brave was detected (page-area brightness at 10 fps) and
-cut, then the clips were captioned (PIL) and joined with ffmpeg. In the take, MetaMask returned its active account (Alice's)
-first after Connect, so Bob's address was typed in; the cut goes from the picker to the withdrawal. The app now lets the
-person choose when the wallet shares several addresses.
+How it was made: ffmpeg (avfoundation) captured the screen while the pages were driven by script and the MetaMask Confirm
+was clicked by hand; a check at 10 fps confirmed no other window appears in the take; the edit (zooms with ffmpeg
+`zoompan` on a 4K upscale, PIL-rendered frame, pills and cards, `xfade` crossfades) was rendered from that one take.
+Bob's address was entered by hand: MetaMask shares only its active account with a page, which was Alice's.
 
 ## The automated video (`make video`)
 

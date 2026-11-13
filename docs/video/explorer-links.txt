@@ -1,7 +1,7 @@
 # The transactions shown in docs/video/ghost-paths-demo.mp4 (recorded 2026-11-13; NEAR testnet + Ethereum Sepolia)
-payment (Sepolia, Alice's MetaMask → one-time address)  https://sepolia.etherscan.io/tx/0xe4a4e55112096cc187f95171f11f371d2d3e8196e5a6bba5865fde6fbf820f2f
-note on NEAR (announcement #88, via the relayer)         https://testnet.nearblocks.io/txns/8oMWKJhaPMe5yiDsoy9eVroxyGudLj9kGL7RdyXd1RWy
-withdrawal (NEAR: relayer → v1.ghost-paths.testnet → sign on v1.signer-prod.testnet)  https://testnet.nearblocks.io/txns/5NUYBi4yq7hAqzc1wW5ybRPnMDsv8FvjvrJTrHszerkJ
-withdrawal (Sepolia, one-time address → Bob's MetaMask)  https://sepolia.etherscan.io/tx/0x76605c42ce3f9c54714323ec24afdcbccda7c452fb749821d56b9518f470ce7b
-one-time address                                         https://sepolia.etherscan.io/address/0x3c98042D16b29c7cabe33533c651617fa761D59C
+payment (Sepolia, Alice's MetaMask → one-time address)  https://sepolia.etherscan.io/tx/0x6cc61c0e75ccd6aaf97ba3f84af5ef97f579964ef54b24e1440f7feeebcd9830
+note on NEAR (announcement #90, via the relayer)         https://testnet.nearblocks.io/txns/EmqYKBFryPvaVPJXLoABgQxzGnB3fvdmkSFPdDGprKop
+withdrawal (NEAR: relayer → v1.ghost-paths.testnet → sign on v1.signer-prod.testnet)  https://testnet.nearblocks.io/txns/956VkoqzfMdf9RL4fgcfJGKjCcuGDw9Gpn7Mq18Vm929
+withdrawal (Sepolia, one-time address → Bob's wallet)    https://sepolia.etherscan.io/tx/0xe7db7a03afb9eab8524d6f86bf448a97398d2c545ccebc32619f80a912379bfb
+one-time address                                         https://sepolia.etherscan.io/address/0x211DEC3e85DcD2C9D913E09d27BED975b34a73C8
 recipient                                                ghostbob.testnet (registered on v1.ghost-paths.testnet)
