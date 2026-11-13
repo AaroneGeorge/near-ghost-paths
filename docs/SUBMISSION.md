@@ -26,7 +26,7 @@ Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z**. One attempt per repository (
 | Email | the owner's contact email (max 160 characters; at most 2 submissions per email; Tripwire is the other one) |
 | Team size | `1` (exactly this string) |
 | Tracks | `privacy`, `realworld`, `open` (one or more; each once) |
-| NEAR payout account (mainnet) | a named account such as `name.near` or a 64-character implicit account, **created by the owner**; never invent one |
+| NEAR payout account (mainnet) | `aarex.near` (given by the owner on 2026-11-12) |
 | Repository URL | `https://github.com/AaroneGeorge/near-ghost-paths` (max 300 characters, unique) |
 | Demo URL | the public X post URL |
 | Consent | read verbatim to the owner: "I agree that the organizers may use these details to review our submission and contact us about this hackathon." Then `consent: true` |
@@ -43,7 +43,7 @@ Do not commit the filled-in payload: it contains personal data. Generate `reques
   "email": "<owner email>",
   "size": "1",
   "tracks": ["privacy", "realworld", "open"],
-  "nearAddress": "<owner mainnet account>",
+  "nearAddress": "aarex.near",
   "projectUrl": "https://github.com/AaroneGeorge/near-ghost-paths",
   "demoUrl": "<X post URL>",
   "idea": "<see below>",
@@ -58,10 +58,10 @@ curl -sS -X POST https://nearhackathon.com/api/applications -H 'Content-Type: ap
 Do not add other fields (`website` is a spam trap). Expected: HTTP 201. 400 means fix the listed `fields` and resend with the same `requestId`; 403 means outside the window, so tell the owner and do not retry;
 409 means already submitted (use the request-changes page); 503 means wait a minute and resend with the same `requestId`.
 
-### `idea` text (1185 characters; limit 20 to 2000)
+### `idea` text (1402 characters; limit 20 to 2000)
 
 ```
-Ghost Paths brings stealth addresses (ERC-5564) to NEAR Chain Signatures. A recipient registers one meta-address under their NEAR account. A payer derives a one-time address on Ethereum/Base or Solana from it, pays it, and posts an announcement with no recipient field to a NEAR contract. The recipient, or an auditor holding only a viewing key, scans the announcements and finds the payments; only the recipient can sweep, by signing an authorisation that the Ghost Paths contract verifies with ecrecover before it asks v1.signer for an MPC signature. The recipient never holds an ETH, SOL or BTC key, and a sweep on NEAR names only the contract and an opaque path. NEAR makes this possible because Chain Signatures' key derivation is public while only the predecessor contract can obtain a signature, which also covers ed25519 chains that ERC-5564 cannot. Built: a near-sdk contract on testnet (v1.ghost-paths.testnet), a TypeScript SDK, CLI, relayer and web UI, 17-check demos that run offline or against the real testnet MPC, and an honest threat model. Limits: amounts and timing stay public, Bitcoin is derive-only, the 1Click confidential sweep needs an API key and was not run.
+Ghost Paths lets anyone pay a NEAR account privately on Ethereum or Solana: stealth addresses (ERC-5564) rebuilt on NEAR Chain Signatures. The recipient registers one meta-address under their NEAR account. A payer opens a static pay page, types the recipient's NEAR name, and their own MetaMask pays a one-time address computed in the browser; a relayer posts an encrypted note with no recipient field to a NEAR contract, so the payer needs no NEAR account. The recipient's own app, or an auditor holding only a viewing key, scans the notes and finds the payment. Only the recipient can withdraw, by signing an authorisation that the contract checks with ecrecover before it asks v1.signer for an MPC signature. The recipient never holds an ETH or SOL key, and on NEAR a withdrawal names only the contract and an opaque path. NEAR makes this possible because Chain Signatures key derivation is public while only the predecessor contract can obtain a signature, which also covers ed25519 chains like Solana that ERC-5564 cannot. Built: a near-sdk contract on testnet (v1.ghost-paths.testnet), a TypeScript SDK, CLI and relayer, a MetaMask pay page and the recipient's own app, demos that run offline or live on NEAR testnet and Sepolia, and a threat model. Limits: amounts and timing stay public, Bitcoin is derive-only, the 1Click confidential withdrawal needs an API key and was not run, testnet only.
 ```
 
 ## After submitting

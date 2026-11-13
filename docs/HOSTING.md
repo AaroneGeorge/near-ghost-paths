@@ -16,6 +16,39 @@ Keep both up until at least 2026-11-18 (judging), ideally 2026-11-25.
 
 Below, `pay.example.com` and `relay.example.com` stand for your two hostnames.
 
+## The public demo for judges (what to put online)
+
+Goal: anyone with MetaMask can try the product in a minute, without cloning anything.
+
+1. **Pay page** at `https://pay.example.com/pay.html`, built with the demo recipient prefilled:
+   ```bash
+   cd apps/web
+   VITE_GHOST_RELAYER_URL=https://relay.example.com VITE_GHOST_DEFAULT_RECIPIENT=ghostbob.testnet bun run build
+   ```
+   (or set `"defaultRecipient": "ghostbob.testnet"` in `pay-config.json`, section 1). The page then opens with
+   `ghostbob.testnet` filled in and **Ready**, and shows a one-line note: test network, no real money, a link to a Sepolia faucet.
+2. **Relayer** at `https://relay.example.com` (section 2), with about 5 testnet NEAR and
+   `RELAYER_CORS_ORIGINS=https://pay.example.com`.
+3. Nothing else. `ghostbob.testnet` is already registered on `v1.ghost-paths.testnet`; its keys stay on the owner's machine
+   and are never hosted.
+
+What a visitor does: open the page → **Connect MetaMask** (Sepolia) → **Send 0.001 ETH privately** → confirm in MetaMask →
+"Sent privately" with the one-time address, the Sepolia transaction and the NEAR note under **Technical details**.
+
+What they can check on the explorers, without trusting us (the same checks as the end of the demo video):
+
+- the Sepolia transaction goes to a brand-new address with no history;
+- the NEAR note was sent by the relayer's account, and its arguments are a one-time key, a tag and a ciphertext: no recipient;
+- `https://testnet.nearblocks.io/address/ghostbob.testnet` still lists one transaction (its registration), however many people
+  paid it.
+
+Visitors cannot see Bob's side (finding and withdrawing the payment): that needs Bob's keys, which by design never leave his
+machine. The demo video shows it, and `make two-party` runs both sides locally.
+
+Keep an eye on the relayer's balance (`/health`) and on visitors' payments piling up at `ghostbob.testnet`'s one-time
+addresses: the owner can withdraw them from Bob's own app (`make two-party`) at any time. Keep both online until at least
+2026-11-18 (judging), ideally 2026-11-25.
+
 ---
 
 ## 1. Build the pay page
@@ -43,7 +76,8 @@ The page reads an optional `pay-config.json` from its own folder at load time; a
   "network": "testnet",
   "contract": "v1.ghost-paths.testnet",
   "relayer": "https://relay.example.com",
-  "chains": ["evm:11155111"]
+  "chains": ["evm:11155111"],
+  "defaultRecipient": "ghostbob.testnet"
 }
 ```
 
@@ -55,6 +89,7 @@ The page reads an optional `pay-config.json` from its own folder at load time; a
 | `relayer` | `VITE_GHOST_RELAYER_URL`, else `http://127.0.0.1:8787` | no trailing slash needed |
 | `chains` | `["evm:11155111"]` (Sepolia) | EVM chain tags; the first is used. `evm:84532` (Base Sepolia) also works |
 | `nearRpc` | `["https://test.rpc.fastnear.com", "https://rpc.testnet.near.org"]` | read-only NEAR RPC, tried in order |
+| `defaultRecipient` | `VITE_GHOST_DEFAULT_RECIPIENT`, else none | prefilled recipient when the URL has no `?to=` (public demo: `ghostbob.testnet`) |
 
 Serve over **HTTPS**. MetaMask works on `http://localhost` but expects HTTPS everywhere else.
 

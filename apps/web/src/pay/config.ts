@@ -20,6 +20,8 @@ export interface PayConfig {
   /** EVM chains offered, in order. The first is the default. */
   chains: ChainTag[];
   nearRpc: string[];
+  /** Prefilled recipient when the URL has no ?to= (a public demo sets a registered test recipient). */
+  defaultRecipient?: string;
 }
 
 const env = import.meta.env;
@@ -34,6 +36,7 @@ export const DEFAULTS: PayConfig = {
     network === "testnet" ? "evm:11155111" : "evm:8453",
   ],
   nearRpc: RPC_URLS[network],
+  defaultRecipient: env.VITE_GHOST_DEFAULT_RECIPIENT || undefined,
 };
 
 export async function loadPayConfig(): Promise<PayConfig> {

@@ -85,7 +85,7 @@ function Pay({ cfg }: { cfg: PayConfig }) {
   const [balance, setBalance] = useState<bigint | null>(null);
   const wallet = wallets?.[0];
 
-  const [to, setTo] = useState(fromQuery("to"));
+  const [to, setTo] = useState(fromQuery("to") || cfg.defaultRecipient || "");
   const [amount, setAmount] = useState(fromQuery("amount") || "0.001");
   const [memo, setMemo] = useState("");
   const [meta, setMeta] = useState<"checking" | "ready" | "missing" | null>(null);
@@ -272,6 +272,23 @@ function Pay({ cfg }: { cfg: PayConfig }) {
             Pay anyone by their NEAR account name. The money lands at a brand-new {info.name}{" "}
             address that nobody else can link to them.
           </PageHead>
+
+          {cfg.network === "testnet" && (
+            <p className="hint" data-testid="testnet-note">
+              Test network: no real money. You need MetaMask with a little Sepolia ETH, free from a{" "}
+              <a
+                href="https://cloud.google.com/application/web3/faucet/ethereum/sepolia"
+                target="_blank"
+                rel="noreferrer noopener"
+              >
+                Sepolia faucet
+              </a>
+              .
+              {cfg.defaultRecipient
+                ? ` ${cfg.defaultRecipient} is a demo recipient you can pay.`
+                : ""}
+            </p>
+          )}
 
           {wallets && !wallet && (
             <Note tone="bad" title="No Ethereum wallet in this browser.">

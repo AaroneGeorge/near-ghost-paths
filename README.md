@@ -33,6 +33,14 @@ Related project by the same submitter: see [Related project](#related-project-by
 
 If a step fails because the NEAR testnet or its MPC network is down, use `make demo-replay`: it needs nothing.
 
+### In your browser (about 1 minute, MetaMask with a little Sepolia ETH)
+
+<!-- TODO(owner): replace <pay-url> with the hosted pay page once it is online (docs/HOSTING.md, "The public demo for judges"). -->
+Open `<pay-url>`: `ghostbob.testnet` is prefilled and shows **Ready**. **Connect MetaMask**, **Send 0.001 ETH privately**, confirm.
+See: "Sent privately" with a brand-new one-time address, and under **Technical details** the Sepolia transaction and the NEAR
+note (sent by the relayer, with no recipient field). On `https://testnet.nearblocks.io/address/ghostbob.testnet` the account
+still shows one transaction, its registration, however many payments it received.
+
 ### Fast path (about 2 minutes, no docker, no network, no keys)
 
 1. Clone and install.
