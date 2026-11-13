@@ -13,6 +13,8 @@ tabs of one browser; MetaMask is on the right.
 The browser's bookmarks bar, its "Claude started debugging this browser" strip and the "Claude is working here" badge
 (both shown while the pages were driven by script) are removed in the edit: the two bars are cut out, and the badge's spot
 in the app header is replaced with a clean capture of the same header (Alice's live wallet balance is left as recorded).
+The browser extension's orange cursor and its action labels ("Clicking", "Typing", a click ripple) are detected frame by
+frame and filled in from the last clean frame (or, where the cursor sat still, from the surrounding pixels).
 
 Edit: the full screen as a rounded window with a soft shadow on a dark gradient; an eased zoom on each moment that matters;
 one caption pill per moment, tagged ALICE, BOB or EVERYONE ELSE, fading in and out; 0.35 s crossfades. Waits (the Sepolia
@@ -32,11 +34,11 @@ block, Bob's scan, the MPC signature) are cut, not sped up; everything plays at 
 | 0:51 | Everyone else | "What others see": a fresh key reads every public note and traces **0** payments. |
 | 0:57 | Behind the scenes | A diagram built up in three steps: Alice → one-time address → Bob, with NEAR underneath (registry, sealed notes, Chain Signatures). 1: Bob publishes two public keys once. 2: Alice's browser derives a brand-new address only Bob can spend and leaves a sealed note. 3: Bob's key approves and NEAR's MPC network signs; no one ever holds that address's private key. |
 | 1:07 | Proof (explorers) | Screenshots with the key fields highlighted: Sepolia, Alice → the fresh one-time address; NearBlocks, the note posted by the relayer's account; the contract's event log for the note (one-time key, tag, ciphertext, no recipient); the withdrawal's call tree (`sweep` → `sign`, an opaque `gp1/…` path); Sepolia, the MPC-signed transfer out to the address Bob chose ("a fresh one keeps him unlinkable"); `ghostbob.testnet`'s account page: one transaction ever, his registration. |
-| 1:27 | End card | Repo URL, "Built at NEAR HACKATHON", "Testnet. Amounts and timing stay public." |
+| 1:27 | End card | Repo URL, "Built at NEAR HACKATHON". |
 
 How it was made: ffmpeg (avfoundation) captured the screen while the pages were driven by script and the MetaMask Confirm
-was clicked by hand; a check at 10 fps confirmed no other window appears in the take; the edit (zooms with ffmpeg
-`zoompan` on a 4K upscale, PIL-rendered frame, pills and cards, `xfade` crossfades) was rendered from that one take.
+was clicked by hand; a check at 10 fps confirmed no other window appears in the take; the edit was rendered from that one take: every frame through PIL with sub-pixel zooms (ffmpeg's `zoompan` rounds
+positions to whole pixels and visibly shakes on slow zooms), PIL-drawn frame, pills and cards, ffmpeg `xfade` crossfades.
 Bob's address was entered by hand: MetaMask shares only its active account with a page, which was Alice's.
 
 ## The automated video (`make video`)
