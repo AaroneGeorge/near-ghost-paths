@@ -84,6 +84,57 @@ bun packages/cli/src/ghost.ts derive --chain btc:testnet4  --predecessor v1.ghos
 These equal what `v1.signer-prod.testnet`'s `derived_public_key` view returns for the same `(predecessor, path)` (recorded 2026-11-09; re-checked live by `bun test packages/sdk` without `GHOST_REPLAY=1`, which makes free RPC view calls, and by `make test-live`).
 Bitcoin is derive-only: nothing is paid to that address in the demo.
 
+## Two people, real wallets (MetaMask on Sepolia)
+
+The product as it is used, with nothing simulated and no demo shortcut: the payer pays from MetaMask on a page that holds no
+keys, the recipient sees it in their own app and withdraws to their own wallet. NEAR testnet + Ethereum Sepolia.
+
+| Who | Where | Holds |
+|---|---|---|
+| Payer (Alice) | `http://127.0.0.1:8790/pay.html` (static; hostable, see [HOSTING.md](HOSTING.md)) | nothing: MetaMask signs |
+| Recipient (Bob) | `http://127.0.0.1:8791/?token=…` (`ghost serve`, his own app) | only Bob's seed |
+| Relayer | `http://127.0.0.1:8792` | its own NEAR testnet account |
+
+**One-time setup** (testnet; a funder is any testnet account you control, as JSON `{account_id, secret_key}`, e.g. the
+`.secrets/demo/funder.json` that `make demo` creates). Pick a free name for the recipient:
+
+```bash
+D=.secrets/demo/two-party; mkdir -p -m 700 $D/bob-home $D/relayer-home
+export GHOST_NETWORK=testnet GHOST_FUNDER_FILE=.secrets/demo/funder.json
+GHOST_HOME=$D/bob-home     bun packages/cli/src/ghost.ts account create --as bob --account-id yourname.testnet --fund 0.5
+GHOST_HOME=$D/bob-home     bun packages/cli/src/ghost.ts init --as bob
+GHOST_HOME=$D/bob-home     bun packages/cli/src/ghost.ts register --as bob      # see: registered yourname.testnet + NEAR tx
+GHOST_HOME=$D/relayer-home bun packages/cli/src/ghost.ts account create --as relayer --fund 1
+```
+
+**Run**
+
+```bash
+make two-party
+```
+
+See: `check-bundle: … no secrets found`, then the relayer, the recipient app and the pay page start, and two URLs: the payer's
+`http://127.0.0.1:8790/pay.html?to=yourname.testnet` and the recipient's `open http://127.0.0.1:8791/?token=…`. Ctrl-C stops all three.
+
+Open them in two browser windows. MetaMask needs a little Sepolia ETH in the payer's account.
+
+1. **Pay page.** **Connect MetaMask** (top right; it then shows the address and its Sepolia balance). The recipient field shows
+   **Ready**, read live from the NEAR registry. Enter an amount (0.001) and an optional note, **Send 0.001 ETH privately**.
+   MetaMask asks to switch to Sepolia if needed, then shows a plain transfer to an address you have never seen: **Confirm**.
+   See: three steps (confirm in your wallet, Sepolia confirms, encrypted note on NEAR), then **Sent privately** with the
+   one-time address and the path picture. **Technical details**: the Sepolia tx, the NEAR note tx (sent by the relayer's
+   account, not yours), and the note itself, which has no recipient field.
+2. **Recipient app.** Within about 10 s, without clicking anything, **Inbox** shows the payment, its amount and the decrypted note.
+   There is no Send tab: this app belongs to the recipient and holds no payer wallet.
+3. **Withdraw** → **Use my wallet's address**: MetaMask's account picker opens (pick the recipient's own account; nothing is
+   signed, it only reads the address). **Withdraw**. See: approving with your key, NEAR signs the transfer (5 to 10 s, the
+   MPC network signs for the one-time address), then `+0.000999 ETH arrived at 0x…` with the balance before and after. The
+   NEAR record shows the relayer and the contract requesting a signature for an opaque path; nothing names the recipient.
+4. **What others see**: the public record, with 0 payments traced to anyone.
+
+Measured on 2026-11-13 (the dry run before recording): the relayer posted the note in 3.4 s; the withdrawal's MPC signature
+took 5.7 s; 0.000999 of 0.001 ETH arrived (the rest paid the Sepolia gas of the withdrawal).
+
 ## Web UI
 
 ```bash
@@ -109,4 +160,6 @@ Screenshots from a live run: `docs/img/ui-send.png`, `docs/img/ui-inbox.png`. Th
 | First `make demo` is slow | It pulls about 1 GB of docker images once (anvil and the Solana validator). |
 | `make web` says `no demo profiles found` | Run `KEEP=1 make demo` first, or use `make web-sim`. |
 | Port 8788 busy | `GHOST_SERVE_PORT=8799 make web-sim` |
+| Pay page: "origin not allowed" | The relayer's `RELAYER_CORS_ORIGINS` must list the pay page's origin (`make two-party` sets it). |
+| Pay page: "No Ethereum wallet in this browser" | Install MetaMask. In Brave, also set Settings → Web3 → Default Ethereum wallet to "Extensions (no fallback)" if Brave Wallet answers instead. |
 | `make test` prints `SKIPPING the Rust contract tests` | Install Rust, `cargo-near` and the `wasm32-unknown-unknown` target to run them; the TypeScript tests already ran. |

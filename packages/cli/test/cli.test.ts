@@ -9,7 +9,7 @@ import { COMMANDS } from "../src/commands/index.ts";
 const CLI = join(import.meta.dir, "../src/ghost.ts");
 const home = mkdtempSync(join(tmpdir(), "gp-cli-"));
 
-async function ghost(args: string[]) {
+async function ghost(args: string[], extraEnv: Record<string, string> = {}) {
   const p = Bun.spawn(["bun", CLI, ...args], {
     env: {
       ...process.env,
@@ -19,6 +19,7 @@ async function ghost(args: string[]) {
       GHOST_RELAYER_URL: "",
       GHOST_CODE_HASH: "",
       NEAR_RPC_URL: "http://127.0.0.1:1",
+      ...extraEnv,
     },
     stdout: "pipe",
     stderr: "pipe",
@@ -96,25 +97,20 @@ describe("ghost CLI", () => {
     );
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/--allow-link/);
-    // With the opt-in it gets past the guard; on mainnet the next check (no pinned contract code
-    // hash, REVIEW M2) refuses before any network call, which keeps this test offline.
+    // With the opt-in it gets past the guard and fails later, at the first network call: every
+    // fetch goes to a dead proxy, which keeps this test offline.
+    const dead = "http://127.0.0.1:1";
     const s = JSON.parse(
       (
-        await ghost([
-          "sweep",
-          "0",
-          "--to",
-          "0x00",
-          "--as",
-          "bob",
-          "--allow-link",
-          "--network",
-          "mainnet",
-          "--json",
-        ])
+        await ghost(["sweep", "0", "--to", "0x00", "--as", "bob", "--allow-link", "--json"], {
+          HTTP_PROXY: dead,
+          HTTPS_PROXY: dead,
+          http_proxy: dead,
+          https_proxy: dead,
+        })
       ).stdout,
     );
     expect(s.ok).toBe(false);
-    expect(s.error).toMatch(/no pinned Ghost Paths code hash/);
+    expect(s.error).not.toMatch(/--allow-link/);
   }, 30_000);
 });

@@ -1,4 +1,4 @@
-import { ArrowDownToLine, Check, Inbox, RefreshCw, Send, Shuffle } from "lucide-react";
+import { ArrowDownToLine, Check, Inbox, RefreshCw, Send, Shuffle, Wallet } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../api.ts";
@@ -14,6 +14,7 @@ import {
   statusOf,
 } from "../lib.ts";
 import { Coin, StatusBadge } from "../parts.tsx";
+import { discoverWallets, isUserReject, pickAccounts } from "../pay/wallet.ts";
 import { useStore } from "../store.tsx";
 import type { Config, PaymentRow, QuoteResult, ScanResult, SweepResult } from "../types.ts";
 import {
@@ -42,6 +43,11 @@ const ASSETS = [
   { value: "sol", label: "SOL" },
 ];
 
+/** Same payments in the same state: keep the old object so open rows and animations stay put. */
+const sameRows = (a: ScanResult, b: ScanResult) =>
+  JSON.stringify(a.payments.map((p) => [p.idx, p.balance_base, p.swept])) ===
+  JSON.stringify(b.payments.map((p) => [p.idx, p.balance_base, p.swept]));
+
 export function InboxPage() {
   const { cfg, who, setWho, go } = useStore();
   const [res, setRes] = useState<ScanResult | null>(null);
@@ -68,9 +74,24 @@ export function InboxPage() {
     setDone({});
     void run(who);
   }, [who, run]);
+  // Keep looking for new payments while the page is open (a quiet re-scan; no spinner).
+  useEffect(() => {
+    if (!who || cfg?.simulated) return;
+    const t = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      api
+        .scan(who)
+        .then((r) => setRes((cur) => (cur && sameRows(cur, r) ? cur : r)))
+        .catch(() => undefined);
+    }, 10_000);
+    return () => clearInterval(t);
+  }, [who, cfg?.simulated]);
 
   if (!cfg) return null;
   const recipients = cfg.profiles.filter((p) => p.recipient);
+  // The recipient's own app: one recipient and no local payer wallet (see App.tsx canSend).
+  const canSend = cfg.simulated || cfg.profiles.some((p) => p.wallet);
+  const own = recipients.length === 1 && !canSend;
   const totals = res ? availableTotals(res.payments) : [];
   const available = res?.payments.filter((p) => statusOf(p) === "unspent").length ?? 0;
 
@@ -99,8 +120,8 @@ export function InboxPage() {
           </span>
         }
       >
-        Private payments sent to {res?.account ?? who}. Only {who}'s keys can find them among
-        everyone's notes on NEAR.
+        Private payments sent to {res?.account ?? who}. Only {own ? "your" : `${who}'s`} keys can
+        find them among everyone's notes on NEAR.
       </PageHead>
 
       <Panel data-testid="scan-result">
@@ -155,15 +176,20 @@ export function InboxPage() {
         >
           {res.payments.length === 0 ? (
             <Empty icon={<Inbox size={24} />} title="Nothing here yet">
-              When someone pays {who} privately, it shows up here.{" "}
-              <button
-                type="button"
-                className="btn quiet small"
-                style={{ display: "inline-flex", padding: "2px 6px" }}
-                onClick={() => go("send")}
-              >
-                <Send size={14} /> Send a test payment
-              </button>
+              When someone pays {own ? "you" : who} privately, it shows up here.
+              {canSend && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    className="btn quiet small"
+                    style={{ display: "inline-flex", padding: "2px 6px" }}
+                    onClick={() => go("send")}
+                  >
+                    <Send size={14} /> Send a test payment
+                  </button>
+                </>
+              )}
             </Empty>
           ) : (
             <div className="inbox-list">
@@ -173,6 +199,7 @@ export function InboxPage() {
                   cfg={cfg}
                   p={p}
                   who={who}
+                  own={own}
                   open={open === p.idx}
                   toggle={() => setOpen((o) => (o === p.idx ? null : p.idx))}
                   done={done[p.idx]}
@@ -194,6 +221,7 @@ function PaymentItem({
   cfg,
   p,
   who,
+  own,
   open,
   toggle,
   done,
@@ -202,6 +230,8 @@ function PaymentItem({
   cfg: Config;
   p: PaymentRow;
   who: string;
+  /** The recipient's own app: say "you"/"your" instead of the profile name. */
+  own: boolean;
   open: boolean;
   toggle: () => void;
   done?: Done;
@@ -248,7 +278,7 @@ function PaymentItem({
             transition={{ duration: 0.25 }}
             style={{ overflow: "hidden" }}
           >
-            <Withdraw cfg={cfg} p={p} who={who} done={done} onDone={onDone} />
+            <Withdraw cfg={cfg} p={p} who={who} own={own} done={done} onDone={onDone} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -260,9 +290,17 @@ function Withdraw({
   cfg,
   p,
   who,
+  own,
   done,
   onDone,
-}: { cfg: Config; p: PaymentRow; who: string; done?: Done; onDone: (d: Done) => void }) {
+}: {
+  cfg: Config;
+  p: PaymentRow;
+  who: string;
+  own: boolean;
+  done?: Done;
+  onDone: (d: Done) => void;
+}) {
   const [dest, setDest] = useState("");
   const [isTest, setIsTest] = useState(false);
   const [route, setRoute] = useState<Route>(cfg.relayer ? "relayer" : "self");
@@ -273,6 +311,33 @@ function Withdraw({
   const [log, setLog] = useState<string[]>([]);
   const [quote, setQuote] = useState<QuoteResult | null>(null);
   const local = cfg.simulated || !!cfg.chains.find((c) => c.tag === p.chain)?.local;
+  const [fromWallet, setFromWallet] = useState("");
+  /** Several addresses shared by the wallet: the person picks one (the wallet's order is not a choice). */
+  const [walletChoices, setWalletChoices] = useState<string[]>([]);
+  const chooseWallet = (a: string) => {
+    setDest(a);
+    setFromWallet(a);
+    setIsTest(false);
+    setWalletChoices([]);
+  };
+
+  // Fill the destination from the browser wallet (MetaMask asks to connect; nothing is signed).
+  const useMyWallet = async () => {
+    setErr(null);
+    try {
+      const w = (await discoverWallets())[0];
+      if (!w) throw new Error("No Ethereum wallet in this browser. Paste an address instead.");
+      const list = await pickAccounts(w);
+      if (list.length === 1) chooseWallet(list[0] as string);
+      else {
+        setDest("");
+        setFromWallet("");
+        setWalletChoices(list);
+      }
+    } catch (e) {
+      if (!isUserReject(e)) setErr((e as Error).message);
+    }
+  };
 
   const testAddress = useCallback(async () => {
     try {
@@ -331,7 +396,7 @@ function Withdraw({
 
   const reached = (re: RegExp) => log.some((l) => re.test(l));
 
-  if (done) return <Withdrawn cfg={cfg} d={done} who={who} />;
+  if (done) return <Withdrawn cfg={cfg} d={done} who={who} own={own} />;
 
   if (busy && route !== "1click")
     return (
@@ -340,7 +405,7 @@ function Withdraw({
           data-testid="sweep-progress"
           steps={[
             {
-              title: `Approving with ${who}'s key`,
+              title: own ? "Approving with your key" : `Approving with ${who}'s key`,
               state: reached(/preparing/) ? "done" : "active",
               body: "The approval names only this address and the destination.",
             },
@@ -378,6 +443,38 @@ function Withdraw({
             spellCheck={false}
             data-testid="dest"
           />
+          {!local && p.chain.startsWith("evm:") && (
+            <div className="row">
+              {fromWallet && dest === fromWallet && <Badge tone="good">Your wallet</Badge>}
+              <Button
+                small
+                variant="quiet"
+                onClick={useMyWallet}
+                icon={<Wallet size={14} />}
+                data-testid="dest-wallet"
+              >
+                Use my wallet's address
+              </Button>
+            </div>
+          )}
+          {walletChoices.length > 1 && (
+            <div className="picks" data-testid="dest-wallet-choices">
+              <span className="hint">
+                Your wallet shared {walletChoices.length} addresses. Send to:
+              </span>
+              {walletChoices.map((a) => (
+                <button
+                  type="button"
+                  key={a}
+                  className="pick-chip mono"
+                  title={a}
+                  onClick={() => chooseWallet(a)}
+                >
+                  {short(a, 6, 4)}
+                </button>
+              ))}
+            </div>
+          )}
           {local && (
             <div className="row">
               {isTest && <Badge tone="warn">Empty test address</Badge>}
@@ -454,7 +551,9 @@ function Withdraw({
           />
         </div>
         {route === "self" && (
-          <Note tone="warn">This withdrawal will be linked to {who}'s NEAR account.</Note>
+          <Note tone="warn">
+            This withdrawal will be linked to {own ? "your" : `${who}'s`} NEAR account.
+          </Note>
         )}
       </More>
 
@@ -534,7 +633,7 @@ function RouteOpt({
   );
 }
 
-function Withdrawn({ cfg, d, who }: { cfg: Config; d: Done; who: string }) {
+function Withdrawn({ cfg, d, who, own }: { cfg: Config; d: Done; who: string; own: boolean }) {
   const { r, before } = d;
   const nt = r.near_txs[0];
   const ms = r.mpc_ms.reduce((a, b) => a + b, 0);
@@ -577,9 +676,12 @@ function Withdrawn({ cfg, d, who }: { cfg: Config; d: Done; who: string }) {
         </div>
       </div>
       <Note tone="good">
-        On NEAR, the record shows a contract and a random-looking code. Nothing names {who}.
+        On NEAR, the record shows a contract and a random-looking code. Nothing names{" "}
+        {own ? "you" : who}.
       </Note>
-      {r.via === "self" && <Note tone="warn">Sent from {who}'s NEAR account, so it's linked.</Note>}
+      {r.via === "self" && (
+        <Note tone="warn">Sent from {own ? "your" : `${who}'s`} NEAR account, so it's linked.</Note>
+      )}
       <More label="Technical details">
         <dl className="facts">
           <dt>From</dt>

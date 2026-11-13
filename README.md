@@ -75,7 +75,7 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
    make web-sim
    ```
    See: `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788` and an `open http://127.0.0.1:8788/?token=…` line. Open that URL (the token authorises pay, sweep and scan for this session): four pages, **Send**, **Inbox**, **What others see** and **Accountant**, and a "Demo mode" strip saying the networks are simulated.
-   Send 0.01 ETH to `bob`; **Open bob's inbox** shows 1 payment; **Withdraw** moves the balance; **What others see** finds 0; **Accountant** opens a read-only view with a CSV download. Stop with Ctrl-C.
+   Send 0.01 ETH to `bob`; the **Inbox** tab shows 1 payment; **Withdraw** moves the balance; **What others see** finds 0; **Accountant** opens a read-only view with a CSV download. Stop with Ctrl-C.
    (`make web-e2e` drives exactly this with Playwright; it needs a Chromium that Playwright can find.)
 
 ### Real run: NEAR testnet MPC plus local chains (about 90 seconds, plus docker start)
@@ -106,6 +106,27 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
    `v1.ghost-paths.testnet` with a fresh random stealth key (no funds involved) and checks the signature against both the local derivation and the signer's own `derived_public_key` view.
    It uses the same cached funder account as step 6 (or creates one from the faucet; on a `429` set `DEMO_FUNDER_FILE` as in step 6).
 
+### The product with real wallets: MetaMask on Sepolia, two people (about 5 minutes once set up)
+
+This is the product as two people use it, with nothing simulated: the payer pays from **MetaMask** on a page that holds no keys
+(`apps/web/pay.html`, static, hostable: [`docs/HOSTING.md`](docs/HOSTING.md)), and the recipient sees and withdraws the payment in
+their **own** app (`ghost serve`, holding only their keys). Needs MetaMask with a little Sepolia ETH and a NEAR testnet funder for
+the one-time setup (a registered recipient and a relayer account): [`docs/DEMO.md`, "Two people, real wallets"](docs/DEMO.md#two-people-real-wallets-metamask-on-sepolia).
+
+```bash
+make two-party
+```
+
+See: the payer's URL `http://127.0.0.1:8790/pay.html?to=<recipient>.testnet` and the recipient's `open http://127.0.0.1:8791/?token=…`.
+On the pay page the recipient shows **Ready** (live NEAR lookup); **Send 0.001 ETH privately** → MetaMask shows a plain
+transfer to a new address → **Confirm** → "Sent privately" with the one-time address, the Sepolia tx and the NEAR note (posted by the
+relayer, so the payer needs no NEAR account). The recipient's **Inbox** shows the payment and its decrypted note without a click;
+**Withdraw** → **Use my wallet's address** (MetaMask's account picker; nothing to sign) → the MPC signs in about 6 s and the ETH
+arrives in the recipient's MetaMask.
+
+`ghostbob.testnet` is a registered recipient on `v1.ghost-paths.testnet`: anyone can pay it from the pay page or with
+`ghost pay ghostbob.testnet 0.001 --chain evm:11155111 …`.
+
 ### Optional
 
 9. `make demo-testnet`: the same flow on Sepolia and Solana devnet. Needs a payer: `FUNDER_EVM_PK` and `FUNDER_SOL_KEY` (see `.env.example`). It moves about 0.001 ETH and 0.02 SOL and sweeps them to the payer's own addresses.
@@ -113,7 +134,8 @@ If a step fails because the NEAR testnet or its MPC network is down, use `make d
 10. `make demo-live`: designed for NEAR mainnet + Base + a 1Click confidential sweep. It **refuses** without `MAINNET_APPROVED=1`, a mainnet contract and mainnet profiles, prints what is missing, runs only a free keyless 1Click **dry** quote
     and exits 0 having spent nothing. No mainnet contract exists yet (see [Limitations](#limitations-and-next-steps)).
 
-11. `make video` (macOS, Brave, a funded testnet payer): renders the demo video, `docs/video/ghost-paths-demo.mp4` (1:48, silent, burned-in captions, poster next to it), all live on NEAR testnet, Sepolia and Solana devnet. Alice pays Bob in the web app, Bob withdraws, what outsiders and his accountant see; then a behind-the-scenes card, a real Terminal.app run of `make demo-testnet` and the explorer pages of those transactions as proof, use cases, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). Setup and storyboard: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
+11. The demo video, `docs/video/ghost-paths-demo.mp4` (1:39, silent, burned-in captions): the two-party flow above, recorded live with the real MetaMask on NEAR testnet and Sepolia; its transactions are in `docs/video/explorer-links.txt`, the shot list in [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
+    `make video` (macOS, Brave, a funded testnet payer) renders an older, fully automated cut into `docs/video/automated/` (silent, burned-in captions, poster next to it), all live on NEAR testnet, Sepolia and Solana devnet. Alice pays Bob in the web app, Bob withdraws, what outsiders and his accountant see; then a behind-the-scenes card, a real Terminal.app run of `make demo-testnet` and the explorer pages of those transactions as proof, use cases, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). Setup and storyboard: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
 
 ---
 
@@ -153,7 +175,9 @@ Full protocol, encodings and test vectors: [docs/SPEC.md](docs/SPEC.md). Sweep d
   stealth address only when the contract asks, and the contract asks only for a valid signature by that payment's stealth key `K`. A relayer can submit that request but cannot change it.
 - **A NEAR smart contract** in Rust (`near-sdk` 5.30.1, `contract/`): registry, announcement log (NEP-297 events), and the sweep gateway using `env::ecrecover` and a cross-contract promise to `v1.signer`. Deployed at `v1.ghost-paths.testnet`.
 - **near-api-js** 7.4: accounts, signing, RPC with failover, the NEAR testnet account helper, transaction results (`packages/sdk/src/near.ts`, `registry.ts`).
-- **chainsig.js** 1.1.16: the MPC root keys, derivation helpers, signature conversion, and the Bitcoin PSBT adapter.
+- **chainsig.js** 1.1.16: the MPC root keys, derivation helpers, signature conversion, and the Bitcoin PSBT adapter. The browser pay page uses
+  `packages/sdk/src/chainsig-lite.ts` instead: the same root keys and epsilon derivation on `@noble/curves` (chainsig.js would add about 7 MB of
+  wallet code to the page), checked byte for byte against chainsig.js in `packages/sdk/test/chainsig-lite.test.ts`.
 - **NEAR Intents / 1Click** (`https://1click.chaindefuser.com`, mainnet only): a *dry* quote for the consolidation-breaking sweep. Public dry quotes work without a key and are what the demo prints. **`confidentiality: basic` needs `ONECLICK_API_KEY`;
   without it the API answers 401 and the CLI says so and falls back to a public quote. We have not run a confidential sweep and do not claim that it works.**
 - NEAR testnet faucet helper for zero-secret demos.
@@ -193,9 +217,9 @@ A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 | `packages/sdk/` | keys, stealth math, MPC derivation, announcements and memos, scan, registry clients (in-memory and NEAR), chain adapters (EVM via viem, Solana via web3.js, Bitcoin via chainsig.js), 1Click client |
 | `packages/cli/` | the `ghost` CLI (`bun packages/cli/src/ghost.ts --help`) and `ghost serve`, the HTTP API behind the web UI |
 | `packages/relayer/` | small HTTP relayer with its own NEAR account: `/announce`, `/sweep`, `/health` |
-| `apps/web/` | Vite + React UI: Send, Scan, Sweep, Auditor |
-| `demo/` | `demo.ts` (what `make demo*` runs), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
-| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:48, silent with captions), its poster, the captured Terminal output and the explorer links it shows |
+| `apps/web/` | Vite + React, two pages. `pay.html`: the payer's page (MetaMask over EIP-1193/EIP-6963, the one-time address computed in the browser, the note posted through the relayer; no keys, no server; host it anywhere, [`docs/HOSTING.md`](docs/HOSTING.md)). `index.html`: the recipient's app on top of `ghost serve` (Inbox, What others see, Accountant; Send only in the all-in-one local demo) |
+| `demo/` | `demo.ts` (what `make demo*` runs), `two-party.ts` (`make two-party`: relayer + recipient app + pay page), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
+| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), HOSTING (pay page + relayer), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:39, silent with captions, real MetaMask on NEAR testnet + Sepolia), its poster and the explorer links it shows; `docs/video/automated/` the Terminal output and links of the older automated cut |
 | `scripts/` | `record-video.ts`, what `make video` runs |
 
 Run any CLI command through `make ghost ARGS="status"` or `bun packages/cli/src/ghost.ts <command>`. Each command accepts `--json`. See [docs/DEMO.md](docs/DEMO.md) for the exact commands and expected output of every step.

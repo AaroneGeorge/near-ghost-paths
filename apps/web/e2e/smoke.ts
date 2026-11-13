@@ -126,7 +126,7 @@ async function main() {
 
     // ---- Inbox (the recipient's scan) shows 1
     console.log("Inbox");
-    await page.getByTestId("to-inbox").click();
+    await page.getByTestId("tab-inbox").click();
     await page.getByTestId("scan-result").waitFor();
     await page.getByTestId("found").filter({ hasText: /^1$/ }).waitFor();
     check((await txt("found")) === "1", "recipient inbox finds exactly 1 payment");

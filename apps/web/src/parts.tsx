@@ -95,7 +95,9 @@ export function BundleLoader() {
       </button>
       {recipients.length > 0 && (
         <div className="picks">
-          <span className="hint">Demo: use the viewing key of</span>
+          <span className="hint">
+            {cfg?.simulated ? "Demo: use the viewing key of" : "Load the viewing key of"}
+          </span>
           {recipients.map((p) => (
             <button
               type="button"

@@ -1,7 +1,8 @@
-import { ArrowRight, Check, Ghost, Lock, RotateCcw, UserCheck, UserX } from "lucide-react";
+import { Check, Lock, RotateCcw, UserCheck, UserX } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "../api.ts";
+import { GhostPath } from "../ghostpath.tsx";
 import {
   FAMILY_LABEL,
   FAMILY_NAME,
@@ -39,7 +40,7 @@ const swap = {
 };
 
 export function SendPage() {
-  const { cfg, lastPay, setLastPay, go, setWho } = useStore();
+  const { cfg, lastPay, setLastPay } = useStore();
   if (!cfg) return null;
   return (
     <div className="page">
@@ -47,70 +48,7 @@ export function SendPage() {
         Pay anyone with a NEAR account on {offeredNames(cfg)}. The money lands at a brand-new
         address that nobody else can trace back to them.
       </PageHead>
-      <SendFlow
-        cfg={cfg}
-        lastPay={lastPay}
-        setLastPay={setLastPay}
-        openInbox={(name) => {
-          setWho(name);
-          go("inbox");
-        }}
-      />
-    </div>
-  );
-}
-
-/** You → a fresh one-time address → them. The one memorable picture of what Ghost Paths does. */
-function GhostPath({
-  from,
-  to,
-  address,
-  lit,
-}: { from: string; to: string; address?: string; lit?: boolean }) {
-  const draw = (delay: number) =>
-    lit
-      ? {
-          initial: { pathLength: 0 },
-          animate: { pathLength: 1 },
-          transition: { duration: 0.6, delay, ease: "easeInOut" as const },
-        }
-      : {};
-  return (
-    <div className="path" aria-hidden="true">
-      <div className="node">
-        <div className="disc you">{from.slice(0, 1).toUpperCase() || "?"}</div>
-        <div className="cap">
-          <b>{from || "You"}</b>pays
-        </div>
-      </div>
-      <svg className="trail" viewBox="0 0 100 12" preserveAspectRatio="none">
-        <title>path</title>
-        <line x1="2" y1="6" x2="98" y2="6" />
-        {lit && <motion.line x1="2" y1="6" x2="98" y2="6" className="on" {...draw(0)} />}
-      </svg>
-      <div className="node">
-        <motion.div
-          className={`disc ghost ${lit ? "lit" : ""}`}
-          animate={lit ? { scale: [1, 1.12, 1] } : {}}
-          transition={{ duration: 0.5, delay: 0.55 }}
-        >
-          <Ghost size={22} />
-        </motion.div>
-        <div className="cap">
-          <b>{address ? short(address, 6, 4) : "New address"}</b>used once
-        </div>
-      </div>
-      <svg className="trail" viewBox="0 0 100 12" preserveAspectRatio="none">
-        <title>path</title>
-        <line x1="2" y1="6" x2="98" y2="6" />
-        {lit && <motion.line x1="2" y1="6" x2="98" y2="6" className="on" {...draw(0.7)} />}
-      </svg>
-      <div className="node">
-        <div className="disc them">{to.slice(0, 1).toUpperCase() || "?"}</div>
-        <div className="cap">
-          <b>{to || "Them"}</b>receives
-        </div>
-      </div>
+      <SendFlow cfg={cfg} lastPay={lastPay} setLastPay={setLastPay} />
     </div>
   );
 }
@@ -119,12 +57,10 @@ function SendFlow({
   cfg,
   lastPay,
   setLastPay,
-  openInbox,
 }: {
   cfg: Config;
   lastPay: PayResult | null;
   setLastPay: (p: PayResult | null) => void;
-  openInbox: (who: string) => void;
 }) {
   const payers = cfg.profiles.filter((p) => p.wallet || p.near);
   const recipients = cfg.profiles.filter((p) => p.recipient);
@@ -432,13 +368,7 @@ function SendFlow({
 
       {stage === "done" && lastPay && (
         <motion.div key="done" {...swap}>
-          <Receipt
-            cfg={cfg}
-            r={lastPay}
-            from={payer}
-            onInbox={openInbox}
-            onAgain={() => setLastPay(null)}
-          />
+          <Receipt cfg={cfg} r={lastPay} from={payer} onAgain={() => setLastPay(null)} />
         </motion.div>
       )}
     </AnimatePresence>
@@ -449,17 +379,14 @@ function Receipt({
   cfg,
   r,
   from,
-  onInbox,
   onAgain,
 }: {
   cfg: Config;
   r: PayResult;
   from: string;
-  onInbox: (w: string) => void;
   onAgain: () => void;
 }) {
   const who = nameOf(cfg, r.recipient);
-  const canOpenInbox = cfg.profiles.some((p) => p.recipient && p.name === who);
   const tx = chainTxLink(cfg, r.chain, r.pay_tx ?? "", r.pay_tx_url);
   const addr = chainAddrLink(cfg, r.chain, r.address);
   const ntx = r.announce_tx ? nearTxLink(cfg, r.announce_tx, r.announce_tx_url) : undefined;
@@ -499,22 +426,9 @@ function Receipt({
           Anyone can see that {r.amount} {r.asset} moved. Nobody but {who} can tell it was for them.
         </Note>
 
-        <div className="row" style={{ gap: 8 }}>
-          {canOpenInbox && (
-            <Button
-              variant="primary"
-              onClick={() => onInbox(who)}
-              icon={<ArrowRight size={17} />}
-              data-testid="to-inbox"
-              style={{ flex: 1 }}
-            >
-              Open {who}'s inbox
-            </Button>
-          )}
-          <Button onClick={onAgain} icon={<RotateCcw size={16} />} data-testid="send-again">
-            Send another
-          </Button>
-        </div>
+        <Button onClick={onAgain} icon={<RotateCcw size={16} />} data-testid="send-again">
+          Send another
+        </Button>
 
         <More label="Technical details" data-testid="pay-details">
           <dl className="facts">

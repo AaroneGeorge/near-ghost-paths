@@ -1328,3 +1328,41 @@ td .none {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* ---------- pay page (payer's own wallet) ---------- */
+.pay-top {
+  grid-template-columns: 1fr auto 1fr;
+}
+.brand:is(a) {
+  text-decoration: none;
+}
+.pay-top .net {
+  justify-self: center;
+}
+.wallet-slot {
+  justify-self: end;
+}
+.wallet-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.wallet-chip .dim {
+  color: var(--muted);
+  font-family: var(--sans);
+}
+@media (max-width: 860px) {
+  .pay-top {
+    grid-template-columns: 1fr auto;
+  }
+  .pay-top .net {
+    display: none;
+  }
+}

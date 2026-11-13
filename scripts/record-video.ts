@@ -19,7 +19,7 @@
  * Needs: macOS, bun, make, ffmpeg, Brave, a Playwright chromium build, and testnet funds:
  *   .secrets/demo/testnet-payer.env  FUNDER_EVM_PK=… (Sepolia ETH) and FUNDER_SOL_KEY=… (devnet SOL)
  *   .secrets/demo/funder.json        the NEAR testnet funder (created by make demo on first use)
- * Output: docs/video/ghost-paths-demo.mp4, poster.png, demo-capture.txt, README screenshots.
+ * Output: docs/video/automated/ghost-paths-demo.mp4, poster.png, demo-capture.txt, explorer-links.txt, README screenshots.
  * Cleanup: make demo-clean at the end (VIDEO_KEEP_STATE=1 skips it). VIDEO_KEEP=1 keeps runs/video-*.
  */
 import { type ChildProcess, spawn } from "node:child_process";
@@ -44,7 +44,9 @@ const { chromium } = (await import(join(WEB_MODULES, "playwright"))) as {
 
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const work = process.env.VIDEO_WORK ?? join(ROOT, "runs", `video-${stamp}`);
-const outDir = join(ROOT, "docs", "video");
+// The shipped video (docs/video/ghost-paths-demo.mp4) is the two-party MetaMask take (docs/VIDEO-SCRIPT.md);
+// this automated render goes next to it so it never overwrites it.
+const outDir = join(ROOT, "docs", "video", "automated");
 mkdirSync(work, { recursive: true });
 mkdirSync(outDir, { recursive: true });
 const log = (s: string) => console.log(`[video] ${s}`);
@@ -938,7 +940,7 @@ async function recordUi(base: string, bobEvm: string): Promise<UiTake> {
 
     await top();
     await page.waitForTimeout(400);
-    await tid("to-inbox").click();
+    await tid("tab-inbox").click();
     await cap(
       "Bob opens his inbox. Only his key can spot payments meant for him, note included.",
       BOB,
