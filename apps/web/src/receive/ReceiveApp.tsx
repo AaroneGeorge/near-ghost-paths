@@ -6,6 +6,7 @@
  */
 import { parseHandle } from "@ghost-paths/sdk/src/keys.ts";
 import {
+  BookOpen,
   Check,
   Copy,
   Ghost,
@@ -117,7 +118,12 @@ function Receive({ cfg }: { cfg: PayConfig }) {
             <span className="dot" />
             NEAR {cfg.network}
           </div>
-          <div className="wallet-slot">
+          <div className="wallet-slot top-links">
+            <a className="btn small quiet" href="./how.html" data-testid="to-how">
+              <BookOpen size={15} />
+              <span className="long">How it works</span>
+              <span className="short">How</span>
+            </a>
             <a className="btn small" href="./pay.html" data-testid="to-pay">
               Pay someone
             </a>

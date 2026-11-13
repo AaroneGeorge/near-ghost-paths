@@ -111,6 +111,8 @@ Or follow the setup guide, as a real recipient would: `receive.html?account=your
 pay page's folder; the pay page links to it when a recipient isn't set up) shows the same commands filled in, a live **Ready** /
 **Not set up** check, and the `ghost serve` command for the hosted relayer. Verified on 2026-11-14: create, init, register (0.0016 NEAR),
 serve.
+`how.html` in the same folder (linked from the header of both pages) explains the whole flow for a newcomer: paying, setting up,
+finding and withdrawing payments, what stays public, and how to check it on the explorers.
 
 **Run**
 

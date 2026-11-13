@@ -1505,3 +1505,316 @@ td .none {
     font-size: 13px;
   }
 }
+
+/* ---------- header links (pay, receive, how) ---------- */
+.top-links {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.top-links .short {
+  display: none;
+}
+.pay-top .brand {
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .pay-top {
+    gap: 10px;
+  }
+  .top-links {
+    gap: 2px;
+  }
+  .top-links .long {
+    display: none;
+  }
+  .top-links .short {
+    display: inline;
+  }
+  .top-links .btn.small {
+    padding: 6px 11px;
+    gap: 6px;
+  }
+  .top-links .btn.small.quiet {
+    padding: 6px 8px;
+  }
+}
+
+/* Pay page on a small phone with a wallet connected: the wallet chip needs the room; the guide is
+   still linked from the "How it works" panel. */
+@media (max-width: 440px) {
+  .top-links:has(.wallet-chip) .how-link {
+    display: none;
+  }
+}
+
+/* ---------- the full guide (how.html) ---------- */
+.page.guide {
+  max-width: 760px;
+}
+.guide .lead {
+  font-size: 16px;
+  color: var(--ink-2);
+}
+.guide-sec {
+  scroll-margin-top: 76px;
+}
+.guide-sec > .stack > p,
+.guide .more p {
+  font-size: 15px;
+  color: var(--ink-2);
+}
+.guide code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--paper);
+  border-radius: 6px;
+  padding: 1px 5px;
+  overflow-wrap: anywhere;
+}
+.guide .code {
+  font-size: 12.5px;
+  margin: 0;
+}
+.guide details.more > .in {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sec-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sec-n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--pine);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.toc {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 6px;
+}
+.toc a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font-weight: 600;
+  font-size: 14.5px;
+  text-decoration: none;
+}
+.toc a:hover {
+  background: var(--pine-soft);
+  color: var(--pine);
+}
+.toc .n {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--card);
+  color: var(--pine);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+}
+.cast {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.cast > li {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 12px;
+}
+.cast .ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--pine-soft);
+  color: var(--pine);
+  display: grid;
+  place-items: center;
+}
+.cast .body {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.cast h3 {
+  font-size: 16.5px;
+  margin-top: 6px;
+}
+.cast p {
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.cast p.holds {
+  display: flex;
+  gap: 7px;
+  align-items: flex-start;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.cast p.holds svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--pine);
+}
+.map {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 10px;
+}
+.map .place {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  min-width: 0;
+}
+.map .place.near {
+  background: var(--pine-soft);
+}
+.map .place.chain {
+  grid-column: 1 / -1;
+  background: var(--sky-soft);
+}
+.map .place-h {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink);
+}
+.map ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+}
+.map ol li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.map .ev {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+}
+.map .box {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 9px 11px;
+  display: grid;
+  gap: 1px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--ink-2);
+}
+.map .box b {
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.map .box .mono {
+  color: var(--pine);
+  overflow-wrap: anywhere;
+}
+.map .lane {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.map .lane svg {
+  flex: none;
+  color: var(--muted);
+}
+.map .pill {
+  background: var(--card);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.map .pill.ghost {
+  background: var(--mint);
+  color: var(--pine-2);
+}
+.map figcaption {
+  grid-column: 1 / -1;
+}
+.guide .compare h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+ul.plain {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  font-size: 14.5px;
+  color: var(--ink-2);
+}
+.setup-box {
+  background: var(--paper);
+  border-radius: 16px;
+  padding: 16px;
+}
+.guide-next {
+  justify-content: center;
+}
+.how-more {
+  font-weight: 600;
+  font-size: 14.5px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 560px) {
+  .map {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toc {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .toc a {
+    font-size: 13.5px;
+    padding: 7px 8px;
+  }
+  .setup-box {
+    padding: 12px;
+  }
+}

@@ -6,6 +6,7 @@ Two pieces are meant to be hosted. The third, the recipient's app, is not.
 |---|---|---|---|
 | **Pay page** (`apps/web/dist/pay.html` + `assets/`) | Static files. The payer's own wallet (MetaMask) signs; the one-time address is computed in the browser from the recipient's public meta-address on NEAR. | no | yes, any static host |
 | **Setup guide** (`apps/web/dist/receive.html`, same build) | Static. Checks live whether an account is registered and shows the commands a recipient runs on their own computer (`ghost init`, `register`, `serve`), filled in with their name and this relayer. The pay page links to it when a recipient isn't set up. | no | yes, next to `pay.html` |
+| **Guide** (`apps/web/dist/how.html`, same build) | Static. The full "How Ghost Paths works" page: paying, setting up, finding and withdrawing payments, what is public and private. Linked from the pay page and the setup guide. | no | yes, next to `pay.html` |
 | **Relayer** (`packages/relayer/src/server.ts`) | Posts the payer's encrypted note (`announce`) and recipients' withdrawals (`sweep`) on NEAR from its own account, so neither person appears there. | its own NEAR account key (pays gas and each note's storage) | yes, one small process |
 | Recipient app (`ghost serve`, `apps/web/dist/index.html`) | Scans, decrypts notes, authorises withdrawals. | the recipient's seed | **no**: each recipient runs it on their own machine (`ghost serve` binds to 127.0.0.1) |
 
@@ -65,7 +66,7 @@ cd apps/web
 VITE_GHOST_RELAYER_URL=https://relay.example.com bun run build
 ```
 
-See: `check-bundle: 35 files, no secrets found`. Copy `apps/web/dist/` to the web root of `pay.example.com`.
+See: `check-bundle: 43 files, no secrets found`. Copy `apps/web/dist/` to the web root of `pay.example.com`.
 The page is `https://pay.example.com/pay.html`; `https://pay.example.com/pay.html?to=ghostbob.testnet` pre-fills the recipient.
 (The same `dist/` also contains `index.html`, the recipient app. Served without `ghost serve` it only shows "Can't reach the
 Ghost Paths server", so you can delete it, or redirect `/` to `/pay.html`.)

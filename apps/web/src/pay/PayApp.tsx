@@ -11,6 +11,7 @@ import type { AnnounceArgs, ChainTag, Memo } from "@ghost-paths/sdk/src/types.ts
 import {
   ArrowDownToLine,
   ArrowRight,
+  BookOpen,
   Check,
   Copy,
   Ghost,
@@ -256,7 +257,17 @@ function Pay({ cfg }: { cfg: PayConfig }) {
             <span className="dot" />
             NEAR {cfg.network} · {info.name}
           </div>
-          <div className="wallet-slot">
+          <div className="wallet-slot top-links">
+            <a
+              className="btn small quiet how-link"
+              href="./how.html"
+              title="How it works"
+              aria-label="How it works"
+              data-testid="to-how"
+            >
+              <BookOpen size={15} />
+              <span className="long">How it works</span>
+            </a>
             {account ? (
               <span className="wallet-chip" data-testid="wallet" title={account}>
                 {wallet?.icon && <img src={wallet.icon} alt="" width={18} height={18} />}
@@ -549,6 +560,9 @@ function HowItWorks({ cfg, chainName }: { cfg: PayConfig; chainName: string }) {
             </span>
           </li>
         </ol>
+        <a className="how-more" href="./how.html" data-testid="how-full-guide">
+          Read the full guide <ArrowRight size={15} />
+        </a>
         <div className="stack" style={{ gap: 4 }}>
           <More label="I'm the recipient: where do I see my money?" data-testid="how-recipient">
             <p>
