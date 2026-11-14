@@ -6,3 +6,6 @@ runs/
 dist/
 *.log
 .DS_Store
+
+# the film project (sources, renders, voice)
+ghost-paths-film/
