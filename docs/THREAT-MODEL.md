@@ -72,8 +72,7 @@ contains Bob's two; the web UI's "As a stranger" view lists the whole public log
   (the signer's `state` view lists the threshold; it was 11 on testnet and 10 on mainnet when we checked). A colluding supermajority
   could sign for any one-time address. Ghost Paths adds no trust beyond that, but removes none.
 - **The Ghost Paths contract.** It has no owner and no upgrade method in v1. The only path to change it is a key on its account. **The testnet
-  deployment `v1.ghost-paths.testnet` still has one full-access key**, kept for hot-fixes during the hackathon; it will be deleted
-  before judging (see the README for the current state). Until then, whoever holds that key could redeploy the contract under the same account. Because the MPC derives every stealth address from the *contract account* as the predecessor,
+  deployment `v1.ghost-paths.testnet` has one full-access key**, kept for hot-fixes. Whoever holds that key could redeploy the contract under the same account. Because the MPC derives every stealth address from the *contract account* as the predecessor,
 a malicious redeploy could request signatures for any path and so spend from any one-time address of this deployment.
 The contract itself holds no user funds, but this is the single most important trust item on testnet.
 The mainnet deployment does not exist yet.

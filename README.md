@@ -208,7 +208,7 @@ The demo shows it: a stranger's scan finds 0 payments in a log that contains two
 - **View tag leak:** one byte of the shared secret is public. With a tiny registry (the demo has three accounts) that can identify the recipient. `--no-view-tag` removes it at the cost of scan speed; it is off by default.
 - **Consolidation:** sweeping several payments to the same destination links them (common-input ownership on Bitcoin, same recipient on Ethereum/Solana). Use a fresh destination per sweep. The mainnet mitigation (`--via-1click --confidential basic`) is untested end to end and needs an API key.
 - **Target-chain RPCs:** scanning asks the chain's RPC (EVM, Solana, esplora) for the balance of each of your one-time addresses, so that provider can link them to each other and to your IP. Use your own node or Tor if that matters.
-- **Trust:** the MPC network's threshold (a supermajority could sign for any derived address); the relayer can censor or delay but cannot redirect funds (the destination is inside the signed digest); the contract currently still has a full-access key (see [Testnet deployment](#testnet-deployment)).
+- **Trust:** the MPC network's threshold (a supermajority could sign for any derived address); the relayer can censor or delay but cannot redirect funds (the destination is inside the signed digest); the testnet contract account has a full-access key (see [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md)).
 - **Mode A** (fallback, `GHOST_MODE=account`): the sweep publicly links the recipient's account to the address. Not the default.
 - The anonymity set on testnet is a handful of demo accounts. This is a protocol demonstration, not an audited product.
 
@@ -244,8 +244,7 @@ Run any CLI command through `make ghost ARGS="status"` or `bun packages/cli/src/
 | Code hash | `Gep6ZYfa43r5ZJk97EAma1GjyPfuXrfcvTDPbJXN1fF6` (= sha256 of `contract/res/ghost_paths.wasm`, `e88f0b99...874ed9`) |
 | Live sweeps through the real MPC | ECDSA [`21AELEHgstoAhQTCPbQ7CHWnw73nLDpCJYTcofDSM78G`](https://testnet.nearblocks.io/txns/21AELEHgstoAhQTCPbQ7CHWnw73nLDpCJYTcofDSM78G) (13.2 s), EdDSA [`9qZQVb9MKdXXZ59tuXs9XerWVSimQL2RGoPMUvUx62W7`](https://testnet.nearblocks.io/txns/9qZQVb9MKdXXZ59tuXs9XerWVSimQL2RGoPMUvUx62W7) (13.2 s); recorded in `demo/fixtures/live-sweep-testnet.json` |
 | Gas | about 11 Tgas burnt end to end per sweep (attach 300; unused gas is refunded) |
-| Admin key | **The account still has one full-access key, kept for hot-fixes during the hackathon. It will be deleted before judging**, which makes "no owner, no upgrade method" literally true. <!-- TODO(coordinator): after the key is deleted, replace this row with: Deleted on DATE (tx HASH); the contract can no longer be changed. --> |
-| Mainnet | not deployed. <!-- TODO(coordinator): update if a mainnet contract is deployed. --> |
+| Mainnet | not deployed. |
 
 ## Development
 
@@ -311,7 +310,7 @@ It is an independent project: separate repository, separate code, and a differen
 
 - **Bitcoin is derive-only.** Addresses (`tb1...`) derive and match the signer; the sweep code (all UTXOs into one output, one payload per input) passes offline tests against a fake esplora, but no sats were paid and swept on testnet4. `make demo` does not touch Bitcoin.
 - **Mainnet is not deployed.** `make demo-live` exists but refuses; the 1Click confidential sweep (`--confidential basic`) needs `ONECLICK_API_KEY` and is untested end to end.
-- The contract has no upgrade path by design, but the testnet account keeps a full-access key until it is deleted (see above). The committed wasm is not a reproducible build.
+- The contract has no upgrade path by design, but the testnet account has a full-access key. The committed wasm is not a reproducible build.
 - One payload per `sweep` call (Bitcoin with several UTXOs means several calls); relayer economics (who pays gas and storage) are out of scope; no batch payroll command; no wallet-connect UI (keys live in `ghost serve`).
 - The replay for `make demo-replay` is a recording: if the CLI's request sequence changes it must be re-recorded (`make demo-record`). Its explorer links point to the original run.
 - Local-chain demos (anvil, local Solana) prove the cryptography and the MPC signatures against real NEAR testnet, not a public EVM/Solana testnet except in `make demo-testnet`.

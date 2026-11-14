@@ -67,6 +67,9 @@ Ghost Paths lets anyone pay a NEAR account privately on Ethereum or Solana: stea
 
 ## After submitting
 
+Submitted 2026-11-14T19:19:54Z: HTTP 201, requestId `87f207e4-3c0a-4efa-b7a0-b3c5a64da1c5` (team size `2 - 4`, tracks privacy, realworld, open).
+
+
 - Keep the 201 response and the `requestId`.
 - The repository must stay public through judging; keep any hosted demo up to 2026-11-18 (ideally 2026-11-25).
 - Nothing new should merge after the submission except README or typo fixes; a change to code the judges run risks breaking their reproduction.
