@@ -19,6 +19,8 @@ Related project by the same submitter: see [Related project](#related-project-by
 
 ---
 
+**Demo:** the narrated demo film is in the [demo post on X](https://x.com/_aaronegeorge/status/2121680780518990068) and in [`docs/video/ghost-paths.mp4`](docs/video/ghost-paths.mp4).
+
 ## Try it (do X, see Y)
 
 **Requirements.** Everything below is tested with `bun 1.4.3` on Linux. Only `git` and `bun` are required for the fast path.
@@ -144,7 +146,7 @@ arrives in the recipient's MetaMask.
 10. `make demo-live`: designed for NEAR mainnet + Base + a 1Click confidential sweep. It **refuses** without `MAINNET_APPROVED=1`, a mainnet contract and mainnet profiles, prints what is missing, runs only a free keyless 1Click **dry** quote
     and exits 0 having spent nothing. No mainnet contract exists yet (see [Limitations](#limitations-and-next-steps)).
 
-11. The demo video, `docs/video/ghost-paths-demo.mp4` (1:31, silent, burned-in captions; ends with how it works and the block-explorer proof): the two-party flow above, recorded live with the real MetaMask on NEAR testnet and Sepolia; its transactions are in `docs/video/explorer-links.txt`, the shot list in [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
+11. The demo film, `docs/video/ghost-paths.mp4` (2:34, narrated, with subtitles; demo post on X: https://x.com/_aaronegeorge/status/2121680780518990068): a pen-and-watercolour comic page, a parody in which Elon pays Jensen for GPUs knowing only his NEAR name, with the real screen recordings of the two-party flow taped in as panels (MetaMask on Sepolia, the recipient's app, the withdrawal signed by NEAR Chain Signatures) and the block-explorer proof at the end. Its screen footage comes from the silent cut `docs/video/ghost-paths-demo.mp4` (1:31, burned-in captions), recorded live with the real MetaMask on NEAR testnet and Sepolia; its transactions are in `docs/video/explorer-links.txt`, the shot list in [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
     `make video` (macOS, Brave, a funded testnet payer) renders an older, fully automated cut into `docs/video/automated/` (silent, burned-in captions, poster next to it), all live on NEAR testnet, Sepolia and Solana devnet. Alice pays Bob in the web app, Bob withdraws, what outsiders and his accountant see; then a behind-the-scenes card, a real Terminal.app run of `make demo-testnet` and the explorer pages of those transactions as proof, use cases, and a limits card. It does **not** show a Bitcoin payment (derive-only) or the confidential 1Click sweep (needs an API key, not run). Setup and storyboard: [`docs/VIDEO-SCRIPT.md`](docs/VIDEO-SCRIPT.md).
 
 ---
@@ -229,7 +231,7 @@ A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 | `packages/relayer/` | small HTTP relayer with its own NEAR account: `/announce`, `/sweep`, `/health` |
 | `apps/web/` | Vite + React, four pages. `pay.html`: the payer's page (MetaMask over EIP-1193/EIP-6963, the one-time address computed in the browser, the note posted through the relayer; no keys, no server; host it anywhere, [`docs/HOSTING.md`](docs/HOSTING.md)). `receive.html`: the recipient's setup guide (static, holds no keys). `how.html`: the full "How Ghost Paths works" guide (paying, setting up, finding and withdrawing payments, what is public; static, linked from the other two). `index.html`: the recipient's app on top of `ghost serve` (Inbox, What others see, Accountant; Send only in the all-in-one local demo) |
 | `demo/` | `demo.ts` (what `make demo*` runs), `two-party.ts` (`make two-party`: relayer + recipient app + pay page), `docker-compose.yml`, `fixtures/` (real recorded MPC signatures and the replay tapes) |
-| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), HOSTING (pay page + relayer), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo video (`ghost-paths-demo.mp4`, 1:31, silent with captions, real MetaMask on NEAR testnet + Sepolia), its poster and the explorer links it shows; `docs/video/automated/` the Terminal output and links of the older automated cut |
+| `docs/` | SPEC, THREAT-MODEL, DEMO (expected output), HOSTING (pay page + relayer), VIDEO-SCRIPT, AI-DISCLOSURE, X-POST, SUBMISSION; `docs/video/` holds the demo film (`ghost-paths.mp4`, 2:34, narrated) and the silent screen recording it is cut from (`ghost-paths-demo.mp4`, 1:31, captions, real MetaMask on NEAR testnet + Sepolia), its poster and the explorer links it shows; `docs/video/automated/` the Terminal output and links of the older automated cut |
 | `scripts/` | `record-video.ts`, what `make video` runs |
 
 Run any CLI command through `make ghost ARGS="status"` or `bun packages/cli/src/ghost.ts <command>`. Each command accepts `--json`. See [docs/DEMO.md](docs/DEMO.md) for the exact commands and expected output of every step.
@@ -283,6 +285,14 @@ Configuration (all optional; copy `.env.example` to `.env`):
 | `FUNDER_EVM_PK`, `FUNDER_SOL_KEY` | unset | payer keys for `make demo-testnet` |
 | `MAINNET_APPROVED` | off | hard gate for anything that spends mainnet funds |
 
+## Team
+
+| Name | GitHub | X | Role |
+|---|---|---|---|
+| Aarone George | [@AaroneGeorge](https://github.com/AaroneGeorge) | [@_aaronegeorge](https://x.com/_aaronegeorge) | team lead |
+| Hari | [@hariFED](https://github.com/hariFED) | [@harixhilfiger](https://x.com/harixhilfiger) | content and narration |
+| Arjun | [@4rjunc](https://github.com/4rjunc) | [@4rjunc](https://x.com/4rjunc) | steered and reviewed the idea and architecture |
+
 ## Libraries and AI-generated code
 
 Libraries (all pinned in `bun.lock` and `contract/Cargo.lock`): `chainsig.js` 1.1.16 (includes `bitcoinjs-lib`), `near-api-js` 7.4.0, `@noble/curves` 2.4.0, `@noble/hashes` 2.4.0, `@noble/ciphers` 2.4.0, `@scure/base` 2.2.0,
@@ -290,7 +300,7 @@ Libraries (all pinned in `bun.lock` and `contract/Cargo.lock`): `chainsig.js` 1.
 No cryptographic primitive is hand-rolled.
 
 **All code in this repository was written during the hackathon window by Claude agents** (Claude Opus 5.5 for the SDK, contract, CLI, relayer and demo; Claude Sonnet 5.5 for the web UI, tests, fixtures and documentation; Fable 5.1 for research and the build plan),
-directed and reviewed by the submitter. There is no pre-existing code. Per-component notes: [docs/AI-DISCLOSURE.md](docs/AI-DISCLOSURE.md). The protocol is an adaptation of ERC-5564, credited above.
+directed and reviewed by the team. There is no pre-existing code. Per-component notes: [docs/AI-DISCLOSURE.md](docs/AI-DISCLOSURE.md). The protocol is an adaptation of ERC-5564, credited above.
 
 ## Related project by the same submitter
 

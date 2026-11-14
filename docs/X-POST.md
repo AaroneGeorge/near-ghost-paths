@@ -4,7 +4,7 @@ Rules from HACKATHON.md (section 2): say it was built at NEAR HACKATHON, tag @NE
 Optional: @NearLegion and @NearBuilders (more amplification). The post URL goes into the submission as `demoUrl`.
 The first line must make sense to someone who does not know the project; show one complete moment; say concretely what NEAR does; end with a next step.
 
-Replace `<repo-url>` with the public repository URL and `<pay-url>` with the hosted pay page (`docs/HOSTING.md`) before posting. Attach `docs/video/ghost-paths-demo.mp4` (1:31: Alice pays `ghostbob.testnet` from MetaMask, Bob withdraws to his wallet, NEAR Chain Signatures signs; shot list in `docs/VIDEO-SCRIPT.md`).
+Replace `<repo-url>` with the public repository URL and `<pay-url>` with the hosted pay page (`docs/HOSTING.md`) before posting. Attach `docs/video/ghost-paths.mp4` (2:34, narrated comic: Elon pays Jensen by his NEAR name from MetaMask, Jensen withdraws, NEAR Chain Signatures signs, then the explorer proof). X allows 2:20 without Premium; without Premium attach the silent 1:31 cut `docs/video/ghost-paths-demo.mp4` instead.
 
 ## Option A: single post (275 characters as X counts them, links at 23 each; limit 280)
 
@@ -17,7 +17,7 @@ Try: <pay-url>
 Code: <repo-url>
 ```
 
-Attach the video (`docs/video/ghost-paths-demo.mp4`). If the pay page is not hosted yet, drop the "Try" line (246 characters).
+Attach the video (`docs/video/ghost-paths.mp4`, see above). If the pay page is not hosted yet, drop the "Try" line (246 characters).
 Optional, if it fits the owner's account: reply with the explorer proof, e.g. "Check it yourself: the recipient's NEAR account
 shows one transaction ever, its registration, however many payments it got: https://testnet.nearblocks.io/address/ghostbob.testnet".
 

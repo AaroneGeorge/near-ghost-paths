@@ -1,11 +1,11 @@
 # Submission checklist (owner and coordinator)
 
 Source: `research/dl/HACKATHON.md` (re-read the live version at https://nearhackathon.com/HACKATHON.md before submitting; dates and rules may change).
-Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z**. One attempt per repository (a second submission of the same repository is rejected with 409). Mistakes are fixed at https://nearhackathon.com/request-changes.
+Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z** (05:29 IST on 2026-11-15). One attempt per repository (a second submission of the same repository is rejected with 409). Mistakes are fixed at https://nearhackathon.com/request-changes.
 
 ## Before submitting (all must be true)
 
-- [ ] Repository is **public** (it may be private until now). URL: `https://github.com/AaroneGeorge/near-ghost-paths`.
+- [x] Repository is **public** (checked 2026-11-14 18:44Z). URL: `https://github.com/AaroneGeorge/near-ghost-paths`.
 - [ ] `LICENSE` is present (MIT, Aarone George): yes.
 - [ ] README has "do X, see Y" steps, names the NEAR technology, lists libraries and AI-generated code, names the other project (Tripwire): yes. Re-read it once more for stale numbers (test counts, timings).
 - [ ] **TODO(coordinator): decide the testnet admin key.** `v1.ghost-paths.testnet` still has one full-access key (`ed25519:Akhn79Sm91NX...`). The README says it will be deleted before judging. Delete it
@@ -14,8 +14,8 @@ Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z**. One attempt per repository (
 - [ ] `make demo-replay`, `make test-ts` and `make web-sim` pass on a fresh clone of the **public** repository (this was checked on a fresh local clone; repeat once on the public URL).
 - [ ] The NEAR testnet funder for `make demo`/`make test-live` is not required for judges (they can use `make demo-replay`), but if you want `make demo` to work on their machine the faucet helper must not be rate-limited for them (it limits per IP).
 - [ ] No secrets committed: `.secrets/` is git-ignored. Check with `git ls-files | grep -E '^\.secrets|(^|/)\.env$|\.pem$|secret'` (expect no output). (The replay tapes contain NEAR transaction signatures that look like keys; they are not keys, and `packages/sdk/test/fixtures.test.ts` asserts that no secret-key field is present.)
-- [x] Demo video recorded: `docs/video/ghost-paths-demo.mp4` (1:31, real MetaMask on NEAR testnet + Sepolia; `docs/VIDEO-SCRIPT.md`). Upload it with the X post.
-- [ ] X post published per `docs/X-POST.md` (built at NEAR HACKATHON, @NEARProtocol, #NEARHackathon, video attached). Keep the URL.
+- [x] Demo film: `docs/video/ghost-paths.mp4` (2:34, narrated by Hari, subtitles; real MetaMask on NEAR testnet + Sepolia as panels). Upload it with the X post. X takes at most 2:20 from accounts without Premium: post it from a Premium account, or post the silent 1:31 cut `docs/video/ghost-paths-demo.mp4` and link the film.
+- [x] X post published: https://x.com/_aaronegeorge/status/2121680780518990068 (posted by the lead, 2026-11-15 IST).
 - [ ] Hosted demo (optional, Q-012): none. A local demo is acceptable if the repository is public and reproducible.
 
 ## What the owner must provide
@@ -24,7 +24,8 @@ Window: 2026-11-01T00:00Z to **2026-11-14T23:59Z**. One attempt per repository (
 |---|---|
 | Lead name | `Aarone George` |
 | Email | the owner's contact email (max 160 characters; at most 2 submissions per email; Tripwire is the other one) |
-| Team size | `1` (exactly this string) |
+| Team | Aarone George (lead, [@AaroneGeorge](https://github.com/AaroneGeorge)), Hari ([@hariFED](https://github.com/hariFED)), Arjun ([@4rjunc](https://github.com/4rjunc)). The form takes only the lead's name; the README lists the team |
+| Team size | `2 - 4` (exactly this string; the team is 3) |
 | Tracks | `privacy`, `realworld`, `open` (one or more; each once) |
 | NEAR payout account (mainnet) | `aarex.near` (given by the owner on 2026-11-12) |
 | Repository URL | `https://github.com/AaroneGeorge/near-ghost-paths` (max 300 characters, unique) |
@@ -41,7 +42,7 @@ Do not commit the filled-in payload: it contains personal data. Generate `reques
   "projectName": "Ghost Paths",
   "leadName": "Aarone George",
   "email": "<owner email>",
-  "size": "1",
+  "size": "2 - 4",
   "tracks": ["privacy", "realworld", "open"],
   "nearAddress": "aarex.near",
   "projectUrl": "https://github.com/AaroneGeorge/near-ghost-paths",

@@ -4,7 +4,7 @@ NEAR HACKATHON asks teams to list libraries, templates and AI-generated code (ru
 
 ## Summary
 
-- **Every line of code and documentation in this repository was written during the hackathon window (2026-11-09 onward) by Claude agents**, directed and reviewed by the submitter, Aarone George.
+- **Every line of code and documentation in this repository was written during the hackathon window (2026-11-09 onward) by Claude agents**, directed and reviewed by the team: Aarone George (lead), Hari ([@hariFED](https://github.com/hariFED)) and Arjun ([@4rjunc](https://github.com/4rjunc)).
 - The repository has no pre-existing code, no vendored code and no template. Git history starts with the scaffold commit.
 - Nothing was copied from another project except the reproducible-build image reference in `contract/Cargo.toml`, which was copied from the sibling project Tripwire and is **not verified** (see the README, "Development").
 - The protocol is an adaptation of [ERC-5564](https://eips.ethereum.org/EIPS/eip-5564) (stealth addresses); the differences are listed in `docs/SPEC.md` section 9.
@@ -20,8 +20,9 @@ NEAR HACKATHON asks teams to list libraries, templates and AI-generated code (ru
 | `apps/web`, `packages/cli/src/serve.ts`, `serve-dev.ts` | Claude Sonnet 5.5 (high effort) | Icons: `lucide-react` (chosen via the Code Garage item `frontend.design.icon-sets`); smoke test: Playwright (`frontend.testing.playwright-for-ui`) |
 | `README.md`, `docs/*`, `packages/sdk/test/fixtures.test.ts`, `packages/sdk/test/live.test.ts`, the `test-live` target | Claude Sonnet 5.5 (high effort) | The README commands were executed, and the README was then followed blind from a fresh clone |
 | Scaffold, Makefile skeleton, CI, LICENSE | Claude Sonnet 5.5 | |
+| Demo film `docs/video/ghost-paths.mp4` (script, drawings, edit, score, subtitles) | Claude Opus 5.5 with the Lemo-Opuscar film library | Narration recorded by Hari. Screen panels are the real recordings from `ghost-paths-demo.mp4`. Elon and Jensen are drawn caricatures in a parody; the end card says they have nothing to do with Ghost Paths. Music samples CC0 (Versilian Studios) |
 
-What the human did: chose the two projects, approved the plan, ran the agents, reviewed outputs, owns the accounts and keys, will record the video and publish the post and the submission.
+What the team did: chose the two projects, approved the plan, ran the agents, reviewed outputs, owns the accounts and keys, recorded the video and publishes the post and the submission. Aarone George led the team; Arjun steered and reviewed the idea and the architecture that Claude designed; Hari did the content and narrated the demo film.
 
 ## What is real and what is recorded
 
