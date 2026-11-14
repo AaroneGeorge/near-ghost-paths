@@ -41,6 +41,14 @@ was clicked by hand; a check at 10 fps confirmed no other window appears in the 
 positions to whole pixels and visibly shakes on slow zooms), PIL-drawn frame, pills and cards, ffmpeg `xfade` crossfades.
 Bob's address was entered by hand: MetaMask shares only its active account with a page, which was Alice's.
 
+### Voice-over
+
+The video is silent. `docs/VOICEOVER.md` is a 15-line narration timed to it (what to read, at what moment, in how many
+seconds). Record it in one take with 2-second pauses (a phone is fine), then
+`python3 scripts/add-voiceover.py <recording>` writes `docs/video/ghost-paths-demo-voice.mp4`: the same picture with the
+voice cleaned, split into the lines, placed at their moments and normalised to -16 LUFS. Tested end to end with a synthetic
+voice at a human reading pace (150 words per minute).
+
 ## The automated video (`make video`)
 
 `make video` (`scripts/record-video.ts`) renders an older, fully automated cut into `docs/video/automated/` (not committed;
