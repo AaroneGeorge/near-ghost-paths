@@ -178,16 +178,19 @@ export const scan: Command<ScanResult> = {
         : c.green(`${r.payments.length} payment${r.payments.length === 1 ? "" : "s"}`)
     }`;
     const lines = [head];
+    const hasLink = r.payments.some((p) => p.memo?.ref);
     if (r.payments.length) {
       lines.push(
         table(
-          ["idx", "chain", "address", "balance", "memo", "status"],
+          // The link column appears only when some payment came through a labelled link.
+          ["idx", "chain", "address", "balance", "memo", ...(hasLink ? ["link"] : []), "status"],
           r.payments.map((p) => [
             String(p.idx),
             p.chain,
             short(p.address, 10, 6),
             p.balance_error ? "?" : `${p.balance} ${p.symbol}`,
             p.memo?.note ?? "",
+            ...(hasLink ? [p.memo?.ref ?? ""] : []),
             p.balance_error
               ? "rpc down"
               : p.swept

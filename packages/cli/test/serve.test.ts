@@ -113,6 +113,33 @@ describe("ghost serve (dev)", () => {
     expect(lines.at(-1)?.ok).toBe(true);
   });
 
+  test("a payment made through a labelled link reaches the recipient's scan with its label; a bad label is refused", async () => {
+    const pay = (await (
+      await post("pay", {
+        pos: ["bob", "0.02"],
+        flags: { chain: "evm:31337", as: "alice", memo: "march", ref: "freelance" },
+      })
+    ).json()) as { ok: boolean; idx: number };
+    expect(pay.ok).toBe(true);
+    const bob = (await (await post("scan", { flags: { as: "bob" } })).json()) as {
+      payments: { idx: number; memo: { note: string; ref?: string } }[];
+    };
+    expect(bob.payments.find((p) => p.idx === pay.idx)?.memo).toMatchObject({
+      note: "march",
+      ref: "freelance",
+    });
+    // The label is inside the encrypted memo: the public announcement shows nothing of it.
+    const stranger = (await (await post("scan-stranger", {})).json()) as {
+      announcements: unknown[];
+    };
+    expect(JSON.stringify(stranger.announcements)).not.toContain("freelance");
+    const bad = await post("pay", {
+      pos: ["bob", "0.02"],
+      flags: { chain: "evm:31337", as: "alice", ref: "not a label" },
+    });
+    expect(bad.status).toBe(400);
+  });
+
   test("refuses what the browser must not do", async () => {
     expect((await post("scan", { flags: { home: "/etc" } })).status).toBe(400); // flag not allowlisted
     expect((await post("init", {})).status).toBe(404); // command not exposed

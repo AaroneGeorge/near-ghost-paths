@@ -3,9 +3,11 @@ import {
   type ChainTag,
   type Memo,
   SELF_SUBMIT_WARNING,
+  assertMemoFits,
   buildAnnouncement,
   isChainTag,
   makeTarget,
+  parseRef,
   predecessorFor,
 } from "@ghost-paths/sdk";
 import { chainInfo, formatUnits, parseUnits } from "@ghost-paths/sdk/src/chains/index.ts";
@@ -47,7 +49,7 @@ export const pay: Command<PayResult> = {
   name: "pay",
   summary: "pay a NEAR account at a fresh stealth address on BTC/EVM/Solana and announce it",
   usage:
-    "ghost pay RECIPIENT AMOUNT [ASSET] --chain TAG --as PAYER [--memo TEXT] [--no-view-tag] [--from key|env|lechu]\n            [--via relayer|self] [--no-pay] [--no-announce]",
+    "ghost pay RECIPIENT AMOUNT [ASSET] --chain TAG --as PAYER [--memo TEXT] [--ref LABEL] [--no-view-tag] [--from key|env|lechu]\n            [--via relayer|self] [--no-pay] [--no-announce]",
   async run(ctx, pos) {
     const [who, amountStr, assetArg] = pos;
     if (!who || !amountStr)
@@ -78,6 +80,23 @@ export const pay: Command<PayResult> = {
       noViewTag: !!ctx.flags["no-view-tag"],
     });
     if (ctx.flags["no-view-tag"] && !ctx.flags.memo) ctx.flags.memo = "(no view tag)"; // full-scan needs a memo
+    // The memo is built after the payment (it carries the tx id): refuse a note that cannot fit now,
+    // while nothing has been sent, instead of after the money is already at the one-time address.
+    let ref: string | undefined;
+    try {
+      ref = parseRef(ctx.flags.ref);
+      assertMemoFits(
+        {
+          amount: formatUnits(amount, info.decimals),
+          asset,
+          ...(ctx.flags.memo ? { note: ctx.flags.memo } : {}),
+          ...(ref ? { ref } : {}),
+        },
+        chain,
+      );
+    } catch (e) {
+      throw new CliError(`${(e as Error).message}. Nothing was sent.`);
+    }
     ctx.log(`  one-time address ${c.cyan(target.address)} on ${info.name}`);
     ctx.log(
       c.dim(
@@ -116,6 +135,7 @@ export const pay: Command<PayResult> = {
         amount: out.amount,
         asset,
         ...(ctx.flags.memo ? { note: ctx.flags.memo } : {}),
+        ...(ref ? { ref } : {}),
         ...(txid ? { txid } : {}),
       };
       const args = buildAnnouncement(target, S, memo);

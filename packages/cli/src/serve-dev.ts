@@ -28,6 +28,7 @@ import {
   makeKeystore,
   makeTarget,
   metaFromKeys,
+  parseRef,
   predecessorFor,
   scanAnnouncements,
   scanOne,
@@ -180,10 +181,17 @@ export async function createDevBackend(): Promise<Backend> {
       );
       log(`paying ${amountStr} ${info.symbol} (simulated ${info.family} ledger)`);
       const note = f.memo ?? (noViewTag ? "(no view tag)" : undefined);
+      let ref: string | undefined;
+      try {
+        ref = parseRef(f.ref);
+      } catch (e) {
+        throw new CliError((e as Error).message);
+      }
       const args = buildAnnouncement(target, S, {
         amount: amountStr,
         asset: info.symbol,
         ...(note ? { note } : {}),
+        ...(ref ? { ref } : {}),
         txid: txHash,
       });
       await sleep(delay / 3);

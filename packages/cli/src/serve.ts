@@ -107,7 +107,7 @@ export interface Backend {
 
 /** Commands the browser may run, with the flags each may carry. Everything else is refused. */
 export const ALLOWED: Record<string, readonly string[]> = {
-  pay: ["as", "chain", "memo", "no-view-tag", "via"],
+  pay: ["as", "chain", "memo", "ref", "no-view-tag", "via"],
   scan: ["as", "full", "since"],
   sweep: ["as", "to", "via", "amount", "allow-link"],
   meta: ["as"],

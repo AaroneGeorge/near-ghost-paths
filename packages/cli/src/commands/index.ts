@@ -5,7 +5,7 @@ import type { Flags } from "../args.ts";
  */
 import { Ctx } from "../context.ts";
 import { account, exportViewingKey, init, meta, register } from "./keys.ts";
-import { balance, derive, fund, quote, status } from "./misc.ts";
+import { balance, derive, fund, link, quote, status } from "./misc.ts";
 import { pay } from "./pay.ts";
 import { scan } from "./scan.ts";
 import { sweep } from "./sweep.ts";
@@ -17,6 +17,7 @@ export const COMMANDS: Record<string, Command> = Object.fromEntries(
     init,
     register,
     meta,
+    link,
     pay,
     scan,
     sweep,

@@ -1,6 +1,7 @@
 /** derive, balance, fund, quote, status */
 import {
   type ChainTag,
+  buildPayLink,
   checkRootKeys,
   isChainTag,
   makeProvider,
@@ -15,10 +16,50 @@ import {
   parseUnits,
 } from "@ghost-paths/sdk/src/chains/index.ts";
 import { OneClick, sweepQuote } from "@ghost-paths/sdk/src/oneclick.ts";
-import { CliError } from "../context.ts";
+import { qrTerminal } from "@ghost-paths/sdk/src/qr.ts";
+import { CliError, resolveAccountId } from "../context.ts";
 import { c, kv, short } from "../output.ts";
 import { parseChain } from "./pay.ts";
 import type { Command } from "./types.ts";
+
+export const link: Command = {
+  name: "link",
+  summary: "a shareable payment link (and QR code) for your account, optionally labelled",
+  usage:
+    "ghost link [ACCOUNT|PROFILE] [--ref LABEL] [--amount N] [--note TEXT] [--base URL] [--no-qr] [--light]   (base: GHOST_PAY_URL)",
+  async run(ctx, pos) {
+    const who = pos[0] ?? ctx.flags.as ?? ctx.as;
+    const to = resolveAccountId(ctx.profiles, who);
+    const base = ctx.flags.base ?? process.env.GHOST_PAY_URL;
+    if (!base)
+      throw new CliError(
+        "no pay page address: pass --base https://your-pay-page/ or set GHOST_PAY_URL (docs/HOSTING.md)",
+      );
+    let url: string;
+    try {
+      url = buildPayLink(base, {
+        to,
+        ref: ctx.flags.ref,
+        amount: ctx.flags.amount,
+        note: ctx.flags.note,
+      });
+    } catch (e) {
+      throw new CliError((e as Error).message);
+    }
+    return {
+      account: to,
+      url,
+      ref: ctx.flags.ref || undefined,
+      amount: ctx.flags.amount || undefined,
+      note: ctx.flags.note || undefined,
+      qr: ctx.flags["no-qr"] ? undefined : qrTerminal(url, { light: !!ctx.flags.light }),
+    };
+  },
+  human(r) {
+    const x = r as { url: string; qr?: string };
+    return [x.qr, `  ${c.cyan(x.url)}`].filter(Boolean).join("\n");
+  },
+};
 
 export const derive: Command = {
   name: "derive",

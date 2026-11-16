@@ -6,6 +6,8 @@ const BOOLEAN = new Set([
   "quiet",
   "force",
   "no-view-tag",
+  "no-qr",
+  "light",
   "no-announce",
   "no-relayer",
   "all",
