@@ -63,6 +63,9 @@ contains Bob's two; the web UI's "As a stranger" view lists the whole public log
   "Fresh throwaway address" button is a demo helper: that address is unspendable, so it is offered only on the local demo chains.)
 - **Sweep transactions on the target chain.** From `A` to the destination, amounts visible. Only the *recipient identity* is hidden, not the flow.
 - **Memos are encrypted, but their length is visible** (the ciphertext is public).
+- **Payment-link labels are the payer's words.** A link's `ref` (`pay.html?to=bob.testnet&ref=freelance`) travels in the encrypted memo, so on chain it is invisible,
+  but the link is a plain URL: whoever holds it can pay with that label, or change it in the address bar. Treat a label as a hint for sorting your inbox, never as proof of who paid or why.
+  Readers drop a label that is not 1 to 32 characters of `[A-Za-z0-9._-]`, and the CSV export defuses formula injection as for every memo field.
 - **Registry spam and storage.** Anyone can announce; the announcer pays the storage (about 0.0013 NEAR each). Foreign announcements show up as unfunded hits
   about 1/256 of the time when they carry no memo; scanners filter by balance.
 

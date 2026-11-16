@@ -6,6 +6,7 @@ import {
   type MpcSignature,
   type NearProvider,
   PINNED_CODE_HASH,
+  assertMemoFits,
   buildAnnouncement,
   buildSweepArgs,
   decodeAnnouncement,
@@ -54,6 +55,49 @@ describe("memo encryption", () => {
     expect(() => encryptMemo(S, E, "evm:1", { note: "x".repeat(300) })).toThrow();
     const ct = encryptMemo(S, E, "evm:1", { note: "x".repeat(150) });
     expect(ct.length).toBeLessThanOrEqual(512);
+  });
+});
+
+describe("memo link label (ref) and the size check before paying", () => {
+  const v = V["evm:31337"];
+  const S = hexToBytes(v.S);
+  const E = hexToBytes(v.E);
+  test("a label round-trips and the SPEC vector (no label) is unchanged", () => {
+    const memo = { amount: "0.01", asset: "ETH", note: "invoice #42", ref: "freelance" };
+    const ct = encryptMemo(S, E, "evm:31337", memo);
+    expect(decryptMemo(S, E, "evm:31337", ct)).toEqual(memo);
+    expect(decryptMemo(S, E, "evm:31337", v.ct)).toEqual({
+      amount: "0.01",
+      asset: "ETH",
+      note: "invoice #42",
+    });
+  });
+  test("a payer-written label that is not a plain label is dropped on decrypt", () => {
+    for (const bad of [
+      "<img src=x onerror=alert(1)>",
+      "a b",
+      "=cmd|' /C calc'!A0",
+      "x".repeat(33),
+    ]) {
+      const ct = encryptMemo(S, E, "evm:31337", { note: "hi", ref: bad });
+      expect(decryptMemo(S, E, "evm:31337", ct)).toEqual({ note: "hi" });
+    }
+  });
+  test("assertMemoFits refuses a note that would fail AFTER the payment, counting the tx id", () => {
+    // 120 characters is what the pay page allows; with amount, asset and a 66-character EVM tx id it is 238 bytes.
+    const long = { amount: "0.001", asset: "ETH", note: "x".repeat(120) };
+    expect(() => encryptMemo(S, E, "evm:1", { ...long, txid: `0x${"a".repeat(64)}` })).toThrow(
+      /memo too long/,
+    );
+    expect(() => assertMemoFits(long, "evm:1")).toThrow(/shorten it by 22 bytes/);
+    // A note that fits stays accepted, with a label, and then really encrypts with the real tx id.
+    const ok = { amount: "0.001", asset: "ETH", note: "x".repeat(80), ref: "freelance" };
+    expect(() => assertMemoFits(ok, "evm:1")).not.toThrow();
+    expect(() => encryptMemo(S, E, "evm:1", { ...ok, txid: `0x${"a".repeat(64)}` })).not.toThrow();
+    // Solana signatures are longer (88 characters), so the same memo has less room there.
+    const edge = { amount: "0.001", asset: "SOL", note: "x".repeat(85) };
+    expect(() => assertMemoFits(edge, "evm:1")).not.toThrow();
+    expect(() => assertMemoFits(edge, "sol:devnet")).toThrow();
   });
 });
 

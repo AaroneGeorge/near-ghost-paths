@@ -5,10 +5,11 @@
 import { xchacha20poly1305 } from "@noble/ciphers/chacha.js";
 import { bytesToHex, concatBytes, randomBytes, utf8ToBytes } from "@noble/hashes/utils.js";
 import { HKDF_INFO, KNOWN_CHAINS, MAX_CT_HEX } from "./constants.ts";
+import { cleanRef } from "./paylink.ts";
 import { fromHex, kdf } from "./stealth.ts";
 import type { AnnounceArgs, Announcement, ChainTag, Memo, StealthTarget } from "./types.ts";
 
-const MEMO_FIELDS = ["amount", "asset", "note", "txid"] as const;
+const MEMO_FIELDS = ["amount", "asset", "note", "txid", "ref"] as const;
 /** Max plaintext bytes so that hex(nonce || ct || tag) ≤ MAX_CT_HEX. */
 export const MAX_MEMO_BYTES = MAX_CT_HEX / 2 - 24 - 16;
 
@@ -23,6 +24,30 @@ function memoAad(E: Uint8Array, chain: ChainTag): Uint8Array {
   return concatBytes(E, utf8ToBytes(chain));
 }
 
+function memoPlaintext(memo: Memo): Uint8Array {
+  const clean: Memo = {};
+  for (const f of MEMO_FIELDS) if (memo[f] !== undefined) clean[f] = String(memo[f]);
+  return utf8ToBytes(JSON.stringify(clean));
+}
+
+/** The longest `txid` a client writes for a chain: 0x + 64 hex (EVM), 64 hex (Bitcoin), 88 base58 (Solana). */
+const worstTxid = (chain?: ChainTag) =>
+  "x".repeat(chain?.startsWith("evm:") ? 66 : chain?.startsWith("btc:") ? 64 : 88);
+
+/**
+ * Throws if the memo will not fit in an announcement. Call it BEFORE the payment is sent: the memo is
+ * built after the payment (it carries the tx id), and a memo that is too long then fails once the
+ * money is already at the one-time address and nothing announces it. The transaction id is counted at
+ * its longest for `chain`, because it is not known yet.
+ */
+export function assertMemoFits(memo: Memo, chain?: ChainTag): void {
+  const n = memoPlaintext({ ...memo, txid: memo.txid ?? worstTxid(chain) }).length;
+  if (n > MAX_MEMO_BYTES)
+    throw new Error(
+      `the note does not fit in the encrypted memo (${n} of ${MAX_MEMO_BYTES} bytes with the amount, asset, label and transaction id); shorten it by ${n - MAX_MEMO_BYTES} bytes`,
+    );
+}
+
 /** Encrypts a memo → hex(nonce24 || ciphertext||tag16). */
 export function encryptMemo(
   S: Uint8Array,
@@ -31,9 +56,7 @@ export function encryptMemo(
   memo: Memo,
   nonce?: Uint8Array,
 ): string {
-  const clean: Memo = {};
-  for (const f of MEMO_FIELDS) if (memo[f] !== undefined) clean[f] = String(memo[f]);
-  const pt = utf8ToBytes(JSON.stringify(clean));
+  const pt = memoPlaintext(memo);
   if (pt.length > MAX_MEMO_BYTES)
     throw new Error(`memo too long (${pt.length} > ${MAX_MEMO_BYTES} bytes)`);
   const n = nonce ?? randomBytes(24);
@@ -57,7 +80,11 @@ export function decryptMemo(
     );
     const obj = JSON.parse(new TextDecoder().decode(pt)) as Record<string, unknown>;
     const memo: Memo = {};
-    for (const f of MEMO_FIELDS) if (typeof obj[f] === "string") memo[f] = obj[f] as string;
+    for (const f of MEMO_FIELDS)
+      if (f !== "ref" && typeof obj[f] === "string") memo[f] = obj[f] as string;
+    // The payer wrote the memo: a label that is not a plain label is dropped, never shown.
+    const ref = cleanRef(obj.ref);
+    if (ref) memo.ref = ref;
     return memo;
   } catch {
     return null;

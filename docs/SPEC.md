@@ -93,8 +93,15 @@ Contract record: `{idx:u64, chain, eph:hex32 (E), tag:u8, ct:hex|null, block_hei
 key   = HKDF(ikm=S, info="memo", 32)
 nonce = 24 random bytes
 ct    = hex( nonce || XChaCha20-Poly1305(key, nonce, aad = E || utf8(chain_tag), pt = JSON) )
-JSON  = {"amount"?, "asset"?, "note"?, "txid"?}  (all strings; plaintext ≤ 216 bytes, so ct ≤ 512 hex chars)
+JSON  = {"amount"?, "asset"?, "note"?, "txid"?, "ref"?}  (all strings; plaintext ≤ 216 bytes, so ct ≤ 512 hex chars)
 ```
+
+`ref` is the label of the payment link the payer used (`pay.html?to=bob.testnet&ref=freelance`): 1 to 32 characters of
+`[A-Za-z0-9._-]`, starting with a letter or digit. It is payer-supplied, so a recipient treats it as a hint, not proof;
+a decrypted memo whose `ref` does not match that pattern is read as having no label. Readers that do not know `ref` ignore it
+(unknown fields were always dropped), so it needs no contract change and no version bump. Because the memo is built after
+the payment (it carries `txid`), clients check that it fits **before** paying (`assertMemoFits`), counting `txid` at its longest
+for the chain (66, 64 or 88 characters).
 
 **Scan** (recipient, or an auditor holding `k_view` + `P_spend`):
 ```

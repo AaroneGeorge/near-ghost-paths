@@ -8,6 +8,7 @@ export * from "./stealth.ts";
 export * from "./keys.ts";
 export * from "./derive.ts";
 export * from "./announce.ts";
+export * from "./paylink.ts";
 export * from "./scan.ts";
 export * from "./registry.ts";
 export * from "./near.ts";

@@ -63,6 +63,8 @@ export interface Memo {
   asset?: string;
   note?: string;
   txid?: string;
+  /** Label of the payment link the payer used (docs/SPEC.md §5). Payer-supplied: a hint. */
+  ref?: string;
 }
 
 /** One entry of the contract's announcement log. No recipient field, ever. */

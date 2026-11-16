@@ -16,6 +16,7 @@
     "@solana/web3.js": "1.98.4",
     "chainsig.js": "1.1.16",
     "near-api-js": "7.4.0",
+    "uqr": "0.1.3",
     "viem": "2.57.17"
   }
 }
