@@ -12,6 +12,18 @@ export function statusOf(p: Pick<PaymentRow, "swept" | "balance_base" | "balance
   return BigInt(p.balance_base || "0") > 0n ? "unspent" : "unfunded";
 }
 
+/** The link labels payments came through, with how many each (a label is payer-supplied: a hint). */
+export function labelCounts(rows: Pick<PaymentRow, "memo">[]): [string, number][] {
+  const m = new Map<string, number>();
+  for (const p of rows) if (p.memo?.ref) m.set(p.memo.ref, (m.get(p.memo.ref) ?? 0) + 1);
+  return [...m].sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+/** `label` null = every payment. */
+export function filterByLabel<T extends Pick<PaymentRow, "memo">>(rows: T[], label: string | null) {
+  return label === null ? rows : rows.filter((p) => p.memo?.ref === label);
+}
+
 const fill = (tpl: string | null | undefined, id: string) =>
   tpl ? tpl.replace("{id}", encodeURIComponent(id)) : undefined;
 
@@ -48,6 +60,7 @@ export function paymentsCsv(rows: PaymentRow[]): string {
     "asset_memo",
     "note",
     "payment_txid",
+    "link_label",
   ];
   const lines = [head.join(",")];
   // REVIEW L3: a re-posted announcement is the same payment (same chain + derived address, which
@@ -70,6 +83,7 @@ export function paymentsCsv(rows: PaymentRow[]): string {
         p.memo?.asset,
         p.memo?.note,
         p.memo?.txid,
+        p.memo?.ref,
       ]
         .map(csvCell)
         .join(","),

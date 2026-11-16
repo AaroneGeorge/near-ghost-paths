@@ -5,6 +5,7 @@
  * their own app (`ghost serve`).
  */
 import { parseHandle } from "@ghost-paths/sdk/src/keys.ts";
+import { qrSvg } from "@ghost-paths/sdk/src/qr.ts";
 import {
   BookOpen,
   Check,
@@ -28,6 +29,7 @@ import {
   INSTALL_BUN,
   PROFILE,
   isAccountId,
+  labelledLink,
   payUrl,
   placeholderAccount,
   setupCommands,
@@ -216,6 +218,8 @@ function Receive({ cfg }: { cfg: PayConfig }) {
               </AnimatePresence>
             </div>
           </Panel>
+
+          {status === "ready" && <LinkMaker account={account} />}
 
           <Panel title="What happens">
             <ul className="limits how" data-testid="how">
@@ -461,5 +465,92 @@ function PathOpt<T extends string>({
         <span className="d">{desc}</span>
       </span>
     </button>
+  );
+}
+
+/**
+ * One link per purpose. The label is copied into the payer's encrypted note, so your Inbox can tell
+ * which link a payment came through; nobody else can, and every payment still lands at a new address.
+ */
+function LinkMaker({ account }: { account: string }) {
+  const [ref, setRef] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const made = labelledLink(window.location.href, account, { ref, amount, note });
+  const url = "url" in made ? made.url : "";
+  const svg = url ? qrSvg(url) : "";
+  return (
+    <Panel
+      title="Links for different purposes"
+      sub="Make a link per job or invoice. Your Inbox shows which link each payment came through."
+    >
+      <div className="stack" style={{ gap: 14 }} data-testid="link-maker">
+        <Field
+          label="Label (optional)"
+          htmlFor="link-ref"
+          hint={
+            "error" in made ? (
+              <span style={{ color: "var(--rose)" }} data-testid="link-error">
+                {made.error}
+              </span>
+            ) : (
+              "For example freelance or invoice-42. It travels inside the encrypted note: only you and the payer can read it."
+            )
+          }
+        >
+          <input
+            id="link-ref"
+            className="input"
+            value={ref}
+            onChange={(e) => setRef(e.target.value)}
+            placeholder="freelance"
+            spellCheck={false}
+            autoComplete="off"
+            autoCapitalize="none"
+            maxLength={32}
+            data-testid="link-ref-input"
+          />
+        </Field>
+        <div className="link-pair">
+          <Field label="Amount (optional)" htmlFor="link-amount">
+            <input
+              id="link-amount"
+              className="input"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.05"
+              autoComplete="off"
+              data-testid="link-amount-input"
+            />
+          </Field>
+          <Field label="Note for the payer to send (optional)" htmlFor="link-note">
+            <input
+              id="link-note"
+              className="input"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Invoice 42"
+              maxLength={120}
+              autoComplete="off"
+              data-testid="link-note-input"
+            />
+          </Field>
+        </div>
+        {url && (
+          <div className="share-link" data-testid="link-made">
+            <CopyText value={url} full data-testid="labelled-link" />
+            <div
+              className="link-qr"
+              role="img"
+              aria-label="QR code of this payment link"
+              data-testid="link-qr"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: SVG drawn by the QR library from the URL; the URL itself is never inserted as markup
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+          </div>
+        )}
+      </div>
+    </Panel>
   );
 }

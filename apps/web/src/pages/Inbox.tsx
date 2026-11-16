@@ -6,7 +6,9 @@ import {
   availableTotals,
   chainTxLink,
   delta,
+  filterByLabel,
   fmtAmount,
+  labelCounts,
   nearTxLink,
   networkLabel,
   plural,
@@ -55,6 +57,7 @@ export function InboxPage() {
   const [err, setErr] = useState<string | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [done, setDone] = useState<Record<number, Done>>({});
+  const [label, setLabel] = useState<string | null>(null);
 
   const run = useCallback(async (name: string) => {
     if (!name) return;
@@ -94,6 +97,8 @@ export function InboxPage() {
   const own = recipients.length === 1 && !canSend;
   const totals = res ? availableTotals(res.payments) : [];
   const available = res?.payments.filter((p) => statusOf(p) === "unspent").length ?? 0;
+  const labels = labelCounts(res?.payments ?? []);
+  const shown = filterByLabel(res?.payments ?? [], label);
 
   return (
     <div className="page">
@@ -193,7 +198,29 @@ export function InboxPage() {
             </Empty>
           ) : (
             <div className="inbox-list">
-              {res.payments.map((p) => (
+              {labels.length > 0 && (
+                <div className="row" data-testid="label-filter" style={{ marginBottom: 6 }}>
+                  <Button
+                    small
+                    variant={label === null ? "dark" : "quiet"}
+                    onClick={() => setLabel(null)}
+                  >
+                    All
+                  </Button>
+                  {labels.map(([l, n]) => (
+                    <Button
+                      small
+                      key={l}
+                      variant={label === l ? "dark" : "quiet"}
+                      onClick={() => setLabel(label === l ? null : l)}
+                      data-testid="label-chip"
+                    >
+                      {l} · {n}
+                    </Button>
+                  ))}
+                </div>
+              )}
+              {shown.map((p) => (
                 <PaymentItem
                   key={p.idx}
                   cfg={cfg}
@@ -244,7 +271,20 @@ function PaymentItem({
       <div className="pay-row">
         <Coin cfg={cfg} tag={p.chain} />
         <div style={{ minWidth: 0 }}>
-          <div className="t">{p.memo?.note || "Payment"}</div>
+          <div className="t">
+            {p.memo?.note || "Payment"}
+            {p.memo?.ref && (
+              <>
+                {" "}
+                <Badge
+                  title="The link the payer used (written by the payer)"
+                  data-testid="row-label"
+                >
+                  {p.memo.ref}
+                </Badge>
+              </>
+            )}
+          </div>
           <div className="d">
             {networkLabel(cfg, p.chain)} · <span className="mono">{short(p.address, 6, 4)}</span>
           </div>

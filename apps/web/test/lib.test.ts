@@ -1,5 +1,14 @@
 import { describe, expect, test } from "bun:test";
-import { csvCell, delta, parseBundle, paymentsCsv, short, statusOf } from "../src/lib.ts";
+import {
+  csvCell,
+  delta,
+  filterByLabel,
+  labelCounts,
+  parseBundle,
+  paymentsCsv,
+  short,
+  statusOf,
+} from "../src/lib.ts";
 import type { PaymentRow } from "../src/types.ts";
 
 const row = (o: Partial<PaymentRow> = {}): PaymentRow => ({
@@ -33,7 +42,7 @@ describe("lib", () => {
     const csv = paymentsCsv([row({ memo: { note: "invoice #42", amount: "0.01", asset: "ETH" } })]);
     expect(csv.split("\n")[0]).toContain("idx,chain,address");
     expect(csv.split("\n")[1]).toBe(
-      "3,evm:31337,0xabc,gp1/aa,0.01,ETH,unspent,0.01,ETH,invoice #42,",
+      "3,evm:31337,0xabc,gp1/aa,0.01,ETH,unspent,0.01,ETH,invoice #42,,",
     );
   });
   test("delta", () => {
@@ -54,6 +63,33 @@ describe("lib", () => {
     expect(() => parseBundle(JSON.stringify({ ...ok, seed: "ff" }))).toThrow(/spend seed/);
     expect(() => parseBundle("nope")).toThrow(/JSON/);
     expect(() => parseBundle("{}")).toThrow(/viewing bundle/);
+  });
+});
+
+describe("link labels", () => {
+  const rows = [
+    row({ idx: 1, memo: { ref: "freelance" } }),
+    row({ idx: 2, address: "0xdef", memo: { ref: "invoice-42", note: "x" } }),
+    row({ idx: 3, address: "0x123", memo: { ref: "freelance" } }),
+    row({ idx: 4, address: "0x456" }),
+  ];
+  test("counts per label, sorted, ignoring payments without one", () => {
+    expect(labelCounts(rows)).toEqual([
+      ["freelance", 2],
+      ["invoice-42", 1],
+    ]);
+    expect(labelCounts([])).toEqual([]);
+  });
+  test("filter by label; null shows everything", () => {
+    expect(filterByLabel(rows, null)).toHaveLength(4);
+    expect(filterByLabel(rows, "freelance").map((p) => p.idx)).toEqual([1, 3]);
+    expect(filterByLabel(rows, "nope")).toEqual([]);
+  });
+  test("the CSV has a link_label column the accountant can filter on", () => {
+    const csv = paymentsCsv([row({ memo: { ref: "freelance", note: "march" } })]);
+    const [head, line] = csv.split("\n");
+    expect(head?.endsWith(",payment_txid,link_label")).toBe(true);
+    expect(line?.endsWith(",march,,freelance")).toBe(true);
   });
 });
 

@@ -44,6 +44,8 @@ export interface Memo {
   asset?: string;
   note?: string;
   txid?: string;
+  /** Label of the payment link the payer used (payer-supplied). */
+  ref?: string;
 }
 
 export interface PayResult {

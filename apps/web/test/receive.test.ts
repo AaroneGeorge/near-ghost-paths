@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   isAccountId,
+  labelledLink,
   payUrl,
   receiveUrl,
   setupCommands,
@@ -45,5 +46,25 @@ describe("receive setup guide", () => {
     );
     expect(payUrl(base, "bob.testnet")).toBe("https://pay.example.com/sub/pay.html?to=bob.testnet");
     expect(setupMessage(base, "bob.testnet")).toContain("receive.html?account=bob.testnet");
+  });
+});
+
+describe("labelled links on the receive page", () => {
+  const base = "https://pay.example.com/sub/receive.html?account=bob.testnet";
+  test("builds a link to the pay page next to this page", () => {
+    expect(
+      labelledLink(base, "bob.testnet", { ref: "freelance", amount: "0.05", note: "" }),
+    ).toEqual({
+      url: "https://pay.example.com/sub/pay.html?to=bob.testnet&ref=freelance&amount=0.05",
+    });
+    expect(labelledLink(base, "bob.testnet", {})).toEqual({
+      url: "https://pay.example.com/sub/pay.html?to=bob.testnet",
+    });
+  });
+  test("a bad entry is a message for the form, not an exception", () => {
+    const r = labelledLink(base, "bob.testnet", { ref: "two words" });
+    expect("error" in r && r.error).toMatch(/^label:/);
+    const a = labelledLink(base, "bob.testnet", { amount: "ten" });
+    expect("error" in a && a.error).toMatch(/bad amount/);
   });
 });

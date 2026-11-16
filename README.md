@@ -66,7 +66,7 @@ still shows one transaction, its registration, however many payments it received
    ```bash
    make test-ts
    ```
-   See: `82 pass`, `5 skip`, `0 fail` (the skips are the live tests, which need `LIVE=1`). That includes `packages/sdk/test/fixtures.test.ts`: recorded real MPC
+   See: `108 pass`, `5 skip`, `0 fail` (the skips are the live tests, which need `LIVE=1`). That includes `packages/sdk/test/fixtures.test.ts`: recorded real MPC
    signatures are checked offline, so you see that the **derived address equals the key the MPC signed for**, for secp256k1 (the ECDSA signature recovers to
    `derive(v1.ghost-paths.testnet, path)`) and for ed25519 (the signature verifies under it). `make test` adds the Rust contract tests (unit and a NEAR sandbox)
    when `cargo` and `cargo-near` are installed; otherwise it prints `SKIPPING the Rust contract tests` and still passes.
@@ -213,9 +213,23 @@ The demo shows it: a stranger's scan finds 0 payments in a log that contains two
 The full analysis is in [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md). Difference from ERC-5564: X25519 + HKDF for the viewing key, the stealth key `K` authorises a contract call instead of being the address,
 `chain_tag` is bound into the tweak, and announcements live in a NEAR contract (SPEC section 9).
 
+## Payment links: one link per purpose
+
+Your payment handle is your NEAR account, and `pay.html?to=<you>` is the link. For different jobs or invoices, make a **labelled link**:
+`pay.html?to=bob.testnet&ref=freelance&amount=0.05&note=Invoice+42` pre-fills the amount and the note and carries the label `freelance`.
+The payer's page copies the label into the encrypted note, so your **Inbox** shows it next to the payment (with a filter per label) and the **Accountant** CSV has a `link_label` column;
+on chain nothing changes: every payment still lands at a new one-time address and the label is invisible. A label is written by whoever holds the link, so it is a hint for sorting, not proof
+([`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)).
+
+- In the browser: `receive.html?account=<you>` (once you are set up) has **Links for different purposes**: a label, an optional amount and note, the link to copy and a QR code to print or show.
+- In the terminal: `ghost link bob.testnet --ref freelance --amount 0.05 --base https://your-pay-page/` prints the link and a QR code (`--no-qr` to hide it, `--light` for a light terminal; `GHOST_PAY_URL` replaces `--base`).
+- From the CLI payer: `ghost pay bob 0.05 ETH --chain evm:11155111 --memo "Invoice 42" --ref freelance`.
+
+A note too long for the announcement is now refused **before** anything is paid (it used to fail after the payment, once the money was already at the one-time address and nothing announced it).
+
 ## Private payroll (realworld)
 
-There is no batch command yet. The flow works per payment: the employer runs `ghost pay <contractor> <amount> ETH --chain <chain> --memo "invoice #n"` for each contractor (each gets a fresh address; the memo is encrypted to the contractor),
+There is no batch command yet. The flow works per payment: the employer runs `ghost pay <contractor> <amount> ETH --chain <chain> --memo "invoice #n" [--ref <label>]` for each contractor (each gets a fresh address; the memo is encrypted to the contractor),
 and the contractor runs `ghost sweep`. The accountant gets `ghost export-viewing-key --as <contractor> --out view.json`, a bundle that can list every payment (`ghost scan --viewing-key view.json`, or the **Auditor** tab with CSV export) but cannot spend.
 A scripted `ghost payroll payroll.csv` batch is a next step, not a feature.
 

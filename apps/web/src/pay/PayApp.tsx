@@ -3,9 +3,10 @@
  * one-time address is computed here from the recipient's public meta-address on NEAR, and a relayer
  * posts the encrypted note so the payer needs no NEAR account. Static files; host anywhere.
  */
-import { buildAnnouncement } from "@ghost-paths/sdk/src/announce.ts";
+import { assertMemoFits, buildAnnouncement } from "@ghost-paths/sdk/src/announce.ts";
 import { chainInfo, formatUnits, parseUnits } from "@ghost-paths/sdk/src/chains/config.ts";
 import { parseHandle } from "@ghost-paths/sdk/src/keys.ts";
+import { parsePayLink } from "@ghost-paths/sdk/src/paylink.ts";
 import { makeTarget, predecessorFor } from "@ghost-paths/sdk/src/stealth.ts";
 import type { AnnounceArgs, ChainTag, Memo } from "@ghost-paths/sdk/src/types.ts";
 import {
@@ -80,6 +81,8 @@ interface Paid {
 }
 
 const fromQuery = (k: string) => new URLSearchParams(window.location.search).get(k) ?? "";
+/** What the link pre-filled: `amount`, `note` and `ref` (the link's label), each only if it is well formed. */
+const fromLink = () => parsePayLink(window.location.search);
 
 export default function PayApp() {
   const [cfg, setCfg] = useState<PayConfig | null>(null);
@@ -104,8 +107,10 @@ function Pay({ cfg }: { cfg: PayConfig }) {
   const wallet = wallets?.[0];
 
   const [to, setTo] = useState(fromQuery("to") || cfg.defaultRecipient || "");
-  const [amount, setAmount] = useState(fromQuery("amount") || "0.001");
-  const [memo, setMemo] = useState("");
+  const [link] = useState(fromLink);
+  const ref = link.ref;
+  const [amount, setAmount] = useState(link.amount || "0.001");
+  const [memo, setMemo] = useState(link.note ?? "");
   const [meta, setMeta] = useState<"checking" | "ready" | "missing" | null>(null);
   const [step, setStep] = useState<Step | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -187,6 +192,16 @@ function Pay({ cfg }: { cfg: PayConfig }) {
     setPaid(null);
     let pending: Paid | null = null;
     try {
+      // The note travels in the announcement, built after the payment: check it fits while nothing is sent.
+      assertMemoFits(
+        {
+          amount: formatUnits(parseUnits(amount.trim(), info.decimals), info.decimals),
+          asset: info.symbol,
+          ...(memo.trim() ? { note: memo.trim() } : {}),
+          ...(ref ? { ref } : {}),
+        },
+        chain,
+      );
       setStep("wallet");
       const from = account ?? (await connect(wallet));
       setAccount(from);
@@ -212,6 +227,7 @@ function Pay({ cfg }: { cfg: PayConfig }) {
         asset: info.symbol,
         txid: payTx,
         ...(memo.trim() ? { note: memo.trim() } : {}),
+        ...(ref ? { ref } : {}),
       };
       pending = {
         recipient,
@@ -397,7 +413,18 @@ function Pay({ cfg }: { cfg: PayConfig }) {
                     <Field
                       label="Note (optional)"
                       htmlFor="memo"
-                      hint={`Encrypted. Only ${recipient || "the recipient"} can read it.`}
+                      hint={
+                        <>
+                          Encrypted. Only {recipient || "the recipient"} can read it.
+                          {ref && (
+                            <>
+                              {" "}
+                              Sent with the link's label <Badge data-testid="link-ref">{ref}</Badge>
+                              , so they know which link you used.
+                            </>
+                          )}
+                        </>
+                      }
                     >
                       <input
                         id="memo"

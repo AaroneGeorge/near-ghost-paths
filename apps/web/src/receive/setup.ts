@@ -3,6 +3,7 @@
  * only: the keys are made by the CLI on the recipient's computer; no page ever sees them.
  */
 import { DEFAULT_GHOST_CONTRACT } from "@ghost-paths/sdk/src/constants.ts";
+import { type PayLink, buildPayLink } from "@ghost-paths/sdk/src/paylink.ts";
 import type { PayConfig } from "../pay/config.ts";
 
 /** NEAR account id rules (2–64 chars, lowercase, `-`/`_` inside a part, `.` between parts). */
@@ -26,6 +27,22 @@ const sibling = (base: string, page: string, q: Record<string, string>) => {
 export const payUrl = (base: string, account: string) => sibling(base, "pay.html", { to: account });
 export const receiveUrl = (base: string, account?: string) =>
   sibling(base, "receive.html", account ? { account } : {});
+
+/**
+ * A labelled link for one purpose ("freelance", "invoice-42"), optionally with the amount and note
+ * pre-filled. The inputs are typed by a person, so a bad one is an `error` for the form, not a throw.
+ */
+export function labelledLink(
+  base: string,
+  account: string,
+  opts: Omit<PayLink, "to">,
+): { url: string } | { error: string } {
+  try {
+    return { url: buildPayLink(base, { to: account, ...opts }) };
+  } catch (e) {
+    return { error: (e as Error).message.replace(/^payment link: /, "") };
+  }
+}
 
 /** What a payer sends to a recipient who isn't set up yet. */
 export const setupMessage = (base: string, account: string) =>

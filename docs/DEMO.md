@@ -10,7 +10,7 @@ Everything here was run on 2026-11-09 (Linux, bun 1.4.3, docker 29); `make demo-
 | `DEMO_NATIVE_CHAINS=1 make demo` | bun, `anvil` and `solana-test-validator` on PATH, network | about 90 s | the same; for Apple Silicon, where the agave docker image has no arm64 build (and crashes under x86 emulation) |
 | `KEEP=1 make demo` then `make web` | the same | 90 s + UI | UI at `http://127.0.0.1:8788`; undo with `make demo-clean` |
 | `make web-sim` | bun | 3 s | `ghost serve (dev: simulated chains, no network) on http://127.0.0.1:8788`, then `open http://127.0.0.1:8788/?token=…` (open that URL) |
-| `make test-ts` | bun | 42 s | `82 pass`, `5 skip`, `0 fail` |
+| `make test-ts` | bun | 42 s | `108 pass`, `5 skip`, `0 fail` |
 | `make test-live` | bun, network | 15 to 20 s | `3 pass` (ECDSA and EdDSA signed by the real MPC) |
 | `make demo-testnet` | bun, network, payer keys | 110 s | `17/17` on Sepolia and Solana devnet |
 | `make demo-live` | bun, network | 4 s | `demo-live refused cleanly (dry run only).` |
