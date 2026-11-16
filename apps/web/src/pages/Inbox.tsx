@@ -75,6 +75,7 @@ export function InboxPage() {
   useEffect(() => {
     setOpen(null);
     setDone({});
+    setLabel(null);
     void run(who);
   }, [who, run]);
   // Keep looking for new payments while the page is open (a quiet re-scan; no spinner).
